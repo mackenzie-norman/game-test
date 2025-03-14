@@ -1,0 +1,9 @@
+[package]
+name = "game-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+console_engine = "2.6.1"
+rand = "0.9.0"
+ 
