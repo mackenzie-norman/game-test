@@ -380,6 +380,7 @@ fn tree(engine: &mut ConsoleEngine, frame:i32 , x1: i32,y1:i32,scale: i32, groun
 
         engine.fill_triangle(x1, y1, x1 + width, y1 - height, x1 + width + width, y1, pixel::pxl_fg('*', Color::Green));
     }
+    
 }
 fn rock(engine: &mut ConsoleEngine, frame:i32 , x1: i32,y1:i32,scale: i32, ground: i32){
     let height = 4 * scale;
@@ -387,11 +388,12 @@ fn rock(engine: &mut ConsoleEngine, frame:i32 , x1: i32,y1:i32,scale: i32, groun
     engine.fill_rect(x1 + (width/2) , y1, x1 +width + (width/2) , ground , pixel::pxl_fg('#', Color::Grey));
 }
 fn moving_background_anim(engine: &mut ConsoleEngine, frame:i32, tree_count: i32 , mut space: i32, rand_arr: &Vec<i32>){
-    let gnd = 60;
+    let gnd = 52;
     let heaven_line = gnd -12;
     let draw_sky = false;
+    let mut og_space = space;
     //TODO ADDD ASSERT
-    for i in  heaven_line..gnd{
+    for i in  heaven_line..gnd + 10{
         engine.line(0 , i, engine.get_width() as i32, i, pixel::pxl_fg('#', Color::AnsiValue(101)));
 
     }
@@ -408,22 +410,45 @@ fn moving_background_anim(engine: &mut ConsoleEngine, frame:i32, tree_count: i32
         let x1 = tple.1;
         let scale =  rand_arr[i as usize];
         space -=  3*  rand_arr[i as usize];
-        //tree(engine, frame, space + frame, gnd - 14 * scale/rand_arr[i as usize], scale, gnd - rand_arr[i as usize]);
-        if rand_arr[i as usize] % 3 == 0{
-            //rock(engine, frame,space, gnd , 1, gnd + rand_arr[i as usize] %2, );
-            power_line(engine, frame, space , space + 12);
+        tree(engine, frame, space + frame, gnd - 14 * scale/rand_arr[i as usize], scale, gnd - rand_arr[i as usize] - 4) ;
+        if scale % 2 == 0{
+            //bush(engine, frame, space + frame, gnd - (scale * 2) , scale.try_into().unwrap_or(1) -1);
         }
     }
+    let mut pl_space = og_space;
+    for i in 0..tree_count{
+            pl_space -= 40; 
+            power_line(engine, frame, pl_space , pl_space + 40 , gnd+14);
+    }
+    road(engine, frame, 0, gnd +4,  5,tree_count*(og_space ));
 
 
+fn road(engine: &mut ConsoleEngine, frame: i32, x1:i32, y1: i32, width:i32, length:i32 ){
+    let dash_amt = 4;
+    let mid: i32 = width/2;
+    for i in 0..width{
+        if i != mid{
 
+            engine.line(x1 - length + frame, y1 -i , x1  + frame, (y1 - i) , pixel::pxl_fg('$', Color::DarkGrey))
+        }else{
+
+            for x in (x1 - length + frame).. (x1 + frame){
+                if x% dash_amt == 0{
+                    engine.set_pxl(x, y1- i,pixel::pxl_fg('$', Color::DarkGrey) );
+                }else{
+                    engine.set_pxl(x, y1 - i,pixel::pxl_fg('$', Color::White) );
+                }
+            }
+        }
+    }
+}
 }
 fn curve_gen(x1: i32, x2: i32, y1: i32, droop: i32) -> Vec<(i32, i32)> {
     let mut curve_vec: Vec<(i32, i32)> = Vec::new();
 
     // Midpoint is where the curve reaches its lowest point
     let mid = (x1 + x2) / 2;
-    let y2 = y1 - droop;
+    let y2 = y1  + droop;
 
     // Calculate 'a' for the quadratic formula based on the desired droop
     let a = (y1 - y2) as f64 / ((x1 - mid).pow(2) as f64);
@@ -437,31 +462,40 @@ fn curve_gen(x1: i32, x2: i32, y1: i32, droop: i32) -> Vec<(i32, i32)> {
     curve_vec
 }
 
-fn main() {
-    let curve = curve_gen(0, 10, 20, 5);
-    for (x, y) in curve {
-        println!("({}, {})", x, y);
-    }
-}
-fn power_line(engine: &mut ConsoleEngine, frame:i32, x1: i32, x2:i32){
-    let gnd = 60;
+
+fn power_line(engine: &mut ConsoleEngine, frame:i32, x1: i32, x2:i32, gnd:  i32){
+
+    //let gnd = 70;
     let heaven_line = gnd -12;
     let width = 4;
-    let height = 8;
-    engine.fill_rect(x1 + frame   , heaven_line + 1, x1 +width + frame , heaven_line - height , pixel::pxl_fg('#', Color::AnsiValue(58)));
+    let height = 20;
     
-    engine.fill_rect(x2 + frame   , heaven_line + 1, x2 +width + frame , heaven_line - height , pixel::pxl_fg('#', Color::AnsiValue(58)));
-    for tple in curve_gen(x1, x2, (heaven_line- height), 2){
+    engine.fill_rect(x2 + frame   , heaven_line + 1, x2 +width + frame , heaven_line - height , pixel::pxl_fg('#', Color::AnsiValue(16)));
+    engine.fill_rect(x1 + frame   , heaven_line + 1, x1 +width + frame , heaven_line - height , pixel::pxl_fg('#', Color::AnsiValue(16)));
+    for tple in curve_gen(x1 + (width/2), x2  + (width/2), (heaven_line- height), (4)){
         engine.set_pxl(tple.0 + frame,tple.1,pixel::pxl('*'));
     }
     
 
 
 }
+fn bush(engine: &mut ConsoleEngine, frame:i32, x1: i32, y1: i32, scale:u32){
+    if scale %3 == 1 || scale > 6{
 
-fn train_window_static(engine: &mut ConsoleEngine, ){
+        engine.fill_circle(x1 + frame, y1, scale, pixel::pxl_fg('@', Color::AnsiValue(29)));
+    }else if  scale % 3 ==2{
+        engine.fill_circle(x1 + frame, y1, scale, pixel::pxl_fg('@', Color::AnsiValue(29)));
+        
+    }else{
+        engine.fill_circle(x1 + frame, y1, scale, pixel::pxl_fg('@', Color::AnsiValue(28)));
+    }
+
+}
+
+
+fn train_window_static(engine: &mut ConsoleEngine, windows:i32 ){
     //fill bottom
-    let windows = 3;
+    //let windows = 3;
     let screen_width =(engine.get_width()) as i32;
     let screen_height =(engine.get_height()) as i32;
     //let mut spacing = screen_width /10;
@@ -497,7 +531,7 @@ fn main() {
     let mut rng = rand::rng();
     let tree_count = 200;//rng.random_range(0..12);
     let mut space = 8;
-    let rand_arr: Vec<i32> = (0..tree_count).map(|x| rng.random_range(1..=6)).collect();
+    let rand_arr: Vec<i32> = (0..tree_count).map(|x| rng.random_range(1..=5)).collect();
     loop {
         engine.wait_frame();
         engine.clear_screen();
@@ -505,7 +539,7 @@ fn main() {
         // draw a rectangle with an emoji inside
         //engine.rect(0, 0, 5, 4, pixel::pxl('#'));
         moving_background_anim(&mut engine, frame, tree_count, space, &rand_arr);
-        train_window_static(&mut engine);
+        train_window_static(&mut engine, 2);
         //station_enter_anim(&mut engine, frame);
         //engine.set_pxl(2, 2, pixel::pxl('👍'));
 
