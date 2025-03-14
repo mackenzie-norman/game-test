@@ -233,7 +233,7 @@ impl Snake {
         }
     }
 }
-/* 
+ 
 fn main() {
     // initializes a screen filling the terminal of at least 10x10 of size with a target of 4 frame per second
     let mut engine = console_engine::ConsoleEngine::init_fill_require(10, 10, 16).unwrap();
@@ -272,7 +272,7 @@ fn main() {
     // print the screen to the terminal
     scr.draw();
 }
-
+/*
 //use console_engine::pixel;
 //use console_engine::KeyCode;
 use console_engine::MouseButton;
@@ -311,7 +311,7 @@ fn main() {
         engine.draw(); // draw the screen
     }
 }
-*/
+
 fn bogey(engine: &mut ConsoleEngine, frame:i32, start_val: i32, bottom:i32){
     engine.fill_circle(start_val + frame  , bottom, 4, pixel::pxl_fg('@', Color::DarkGrey));
     engine.fill_rect(start_val + frame, bottom, start_val + frame - 17, bottom + 2,pixel::pxl_fg('@', Color::DarkGrey) );
@@ -498,7 +498,7 @@ fn train_window_static(engine: &mut ConsoleEngine, windows:i32 ){
     //fill bottom
     //let windows = 3;
     let seat_char = pixel::pxl_fg('%', Color::AnsiValue((52)));
-    let draw_seats = false;
+    let draw_seats = true;
     let wall_char  = pixel::pxl_fg('X', Color::DarkGrey);
     let screen_width =(engine.get_width()) as i32;
     let screen_height =(engine.get_height()) as i32;
@@ -680,4 +680,4 @@ fn main() {
         engine.draw();
         frame += 1;
     }
-}
+}*/
