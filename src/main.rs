@@ -2,6 +2,7 @@ use std::iter::Enumerate;
 
 use console_engine::crossterm::style;
 use console_engine::pixel;
+use console_engine::pixel::pxl_fg;
 use console_engine::pixel::Pixel;
 use console_engine::rect_style::BorderStyle;
 use console_engine::screen;
@@ -9,7 +10,7 @@ use console_engine::Color;
 use console_engine::ConsoleEngine;
 use console_engine::KeyCode;
 use rand::Rng;
-
+#[allow(dead_code)]
 /// custom function for generating a random u32 bound into [0;max[
 fn random(max: u32) -> u32 {
     rand::random::<u32>() % max
@@ -496,6 +497,9 @@ fn bush(engine: &mut ConsoleEngine, frame:i32, x1: i32, y1: i32, scale:u32){
 fn train_window_static(engine: &mut ConsoleEngine, windows:i32 ){
     //fill bottom
     //let windows = 3;
+    let seat_char = pixel::pxl_fg('%', Color::AnsiValue((52)));
+    let draw_seats = false;
+    let wall_char  = pixel::pxl_fg('X', Color::DarkGrey);
     let screen_width =(engine.get_width()) as i32;
     let screen_height =(engine.get_height()) as i32;
     //let mut spacing = screen_width /10;
@@ -510,18 +514,144 @@ fn train_window_static(engine: &mut ConsoleEngine, windows:i32 ){
     }
     let window_width =  (screen_width - (spacing * (windows-1)) - (window_start_x * 2)) / windows;
     let window_height =  screen_height - (window_start_y * 2);
-    engine.fill_rect(0, 0, screen_width, window_start_y -1 , pixel::pxl_fg('X', Color::DarkGrey));
-    engine.fill_rect(0, screen_height, screen_width, screen_height -window_start_y +1 , pixel::pxl_fg('X', Color::DarkGrey));
-    engine.fill_rect(0, 0, window_start_x, screen_height , pixel::pxl_fg('X', Color::DarkGrey));
+    engine.fill_rect(0, 0, screen_width, window_start_y -1 , wall_char);
+    engine.fill_rect(0, screen_height, screen_width, screen_height -window_start_y +1 , wall_char);
+    engine.fill_rect(0, 0, window_start_x, screen_height , wall_char);
     for i in 1..=windows{
         let window_end_x = window_start_x + ( window_width);
         engine.rect_border(window_start_x, window_start_y, window_end_x , screen_height - window_start_y, BorderStyle::new_double());
-        engine.fill_rect(window_end_x + 1 , 0, window_end_x + spacing - 1, screen_height , pixel::pxl_fg('X', Color::DarkGrey));
+        engine.fill_rect(window_end_x + 1 , 0, window_end_x + spacing - 1, screen_height , wall_char);
+        if draw_seats{
+
+        //add a seat
+        
+            let seat_width = 20;
+            let seat_x1 = window_start_x + (window_width/4);
+            let seat_x2 = seat_x1 + seat_width;
+            let seat_y1 = window_start_y + (window_start_y/2);
+            let seat_y2 = screen_height -1;
+            engine.fill_rect(seat_x1, seat_y1, seat_x2 , seat_y2, seat_char);
+            engine.fill_triangle(seat_x2, seat_y1,seat_x2 , seat_y2, seat_x2 + (seat_width), seat_y2, seat_char);
+            engine.fill_triangle(seat_x1 - (seat_width ), seat_y1,seat_x1 , seat_y1, seat_x1 ,seat_y2, seat_char);
+        }
         window_start_x = window_end_x + spacing;
-        //engine.fill_rect(screen_width - window_start_x - 1, 0, screen_width, screen_height , pixel::pxl_fg('X', Color::DarkGrey));
+        //engine.fill_rect(screen_width - window_start_x - 1, 0, screen_width, screen_height , wall_char);
 
     }
-    engine.fill_rect(window_start_x - 1, 0, screen_width, screen_height , pixel::pxl_fg('X', Color::DarkGrey));
+    engine.fill_rect(window_start_x - 1, 0, screen_width, screen_height , wall_char);
+
+}
+struct TrainCar<'a> {
+    back: &'a TrainCar<'a>,
+    front: &'a TrainCar<'a>,
+    people: [ i32; 20]
+
+}
+fn pretty_line(engine: &mut ConsoleEngine, x1:i32,y1:i32,x2:i32,y2:i32){
+    ()
+}
+fn top_down_telephone_poles(engine: &mut ConsoleEngine, frame:i32 , x1:i32, y1: i32, x2: i32, size:i32){
+    let pole_char = pixel::pxl_fg('@', Color::AnsiValue(16));
+    let wire_char = pixel::pxl_fg('*', Color::AnsiValue(250));
+    for i in x2..=x1{
+        if i % 40  == 0{
+
+            for px in curve_gen(i + frame,  i+ frame + 40, y1, 0){
+                engine.set_pxl(px.0, px.1, wire_char);
+            }
+            engine.fill_circle(i + frame, y1, size as u32, pole_char);
+        }
+    }
+
+
+
+}
+fn top_down_tracks(engine: &mut ConsoleEngine, frame:i32 , x1:i32, y1: i32, x2: i32, y2:i32){
+    let rail_char = pixel::pxl_fg('#', Color::AnsiValue(242));
+    let rail_char = pixel::pxl_fg('#', Color::AnsiValue(242));
+    let dirt_char = pixel::pxl_fg('@', Color::AnsiValue(58));
+    let track_width = 2;
+    let tie_width = 2;
+    engine.fill_rect(x1 + frame, y1-4, x2 + frame, y2 + 4, dirt_char);
+    engine.fill_rect(x1 + frame, y1 +1 , x2 + frame, y1 + track_width, rail_char);
+    engine.fill_rect(x1 + frame, y2 -1 , x2 + frame, y2 - track_width, rail_char);
+    for i in x2..=x1{
+        if i % (tie_width * 4) == 0{
+            engine.fill_rect(x1 + i + frame, y1 - track_width , x1 + i + frame + tie_width , y2 + track_width, rail_char);
+        }
+
+    }
+}
+fn top_down_view(engine: &mut ConsoleEngine, frame:i32,){// _car:TrainCar){
+    let window_char = pixel::pxl_fbg('=', Color::AnsiValue(51) , Color::AnsiValue(57));
+    let window_char = pixel::pxl_fg('=', Color::AnsiValue(57));
+    let seat_char = pixel::pxl_fg('%', Color::AnsiValue((52)));
+    let screen_width: i32 =(engine.get_width()) as i32;
+    let screen_height: i32 =(engine.get_height()) as i32;
+    let car_x1: i32 = screen_width/6;
+    let car_x2: i32 = screen_width - car_x1;
+    
+    let car_y1 = 0 + screen_height/3;;// + screen_height/36;
+    let car_y2 = screen_height - car_y1;
+    // Lets add some scenery
+    engine.fill_rect(40 + frame, 0,-400 + frame, screen_height , pixel::pxl_fg('#', Color::AnsiValue(101)));
+    top_down_tracks(engine, frame, 40, car_y2 + 4, -400, car_y2 + 12);
+    top_down_tracks(engine, frame, 40, car_y1 + 8, -400, car_y1 + 16);
+    
+    engine.fill_rect(car_x1, car_y1, car_x2, car_y2, pixel::pxl_fg('+', Color::DarkGrey));
+    engine.rect_border(car_x1, car_y1, car_x2, car_y2, BorderStyle::new_simple());
+    //draw windows
+    let window_width = 9;
+    let seat_height = 2;
+    let seat_width = 4;
+    for i in car_x1..=car_x2{
+        if i%20 == 0{
+            for add_v in 0..=window_width{
+            engine.set_pxl(i + add_v, car_y1, window_char);
+            engine.set_pxl(i + add_v, car_y2, window_char);
+            }
+            engine.fill_rect(i+2, car_y1 + 1  , i + seat_width +2, car_y1  + seat_height, seat_char);
+            engine.fill_rect(i+2, car_y1 + 2 + seat_height , i + seat_width +2, car_y1 + 1 +  2* seat_height, seat_char);
+            engine.fill_rect(i+2, car_y2 - 1  , i + seat_width +2, car_y2  - seat_height, seat_char);
+            engine.fill_rect(i+2, car_y2 - 2 - seat_height , i + seat_width +2, car_y2 - 1 -  2* seat_height, seat_char);
+            //engine.set_pxl(i, car_y1, window_char);
+            //engine.set_pxl(i, car_y2, window_char);
+            //engine.set_pxl(i+ 1, car_y1, window_char);
+            //engine.set_pxl(i+1, car_y2, window_char);
+
+        }
+    }
+    //lets do a walkway next
+    engine.fill_rect(car_x1+2, car_y1 + (seat_height *2) + 3, car_x2 -2, car_y2 -((seat_height *2) + 3) , pixel::pxl_fg('#', Color::AnsiValue(236)));
+    engine.rect(car_x1+2, car_y1 + (seat_height *2) + 3, car_x2 -2, car_y2 -((seat_height *2) + 3) , pixel::pxl_fg('=', Color::AnsiValue(236)));
+    engine.line( car_x1, car_y1 + (seat_height *2) + 4, car_x1 , car_y2 -((seat_height *2) + 4) , pixel::pxl_fg('#', Color::AnsiValue(236)));
+    top_down_telephone_poles(engine, frame, 40, car_y1 - 6, -400, 2);
+    // front car
+    let train_spacing = 4;
+    let new_car_x2 =  car_x1 - train_spacing;
+    //walkway
+    engine.fill_rect( new_car_x2, car_y1 + (seat_height *2) + 5, car_x1 +1 , car_y2 -((seat_height *2) + 5) , pixel::pxl_fg('#', Color::AnsiValue(236)));
+    let car_x1 = -1;
+    engine.rect_border(car_x1, car_y1, new_car_x2, car_y2, BorderStyle::new_simple());
+    //gradient for roof
+    for i in 1..=(car_y2 - car_y1)/2 {
+        engine.line(car_x1, car_y1 + i, new_car_x2 -1, car_y1 + i, pixel::pxl_fg('=',Color::AnsiValue((235 + i).try_into().unwrap())));
+        engine.line(car_x1, car_y2 -i, new_car_x2 -1, car_y2 - i, pixel::pxl_fg('=',Color::AnsiValue((235 + i).try_into().unwrap())));
+
+    }
+
+    let car_x1 = car_x2 + train_spacing;
+    let new_car_x2 =  screen_width + 1;
+    //walkway
+    engine.fill_rect( car_x1 - train_spacing -1 , car_y1 + (seat_height *2) + 5,  car_x1, car_y2 -((seat_height *2) + 5) , pixel::pxl_fg('#', Color::AnsiValue(236)));
+    engine.rect_border(car_x1, car_y1, new_car_x2, car_y2, BorderStyle::new_simple());
+    //gradient for roof
+    for i in 1..=(car_y2 - car_y1)/2 {
+        engine.line(car_x1 + 1, car_y1 + i, new_car_x2 -1, car_y1 + i, pixel::pxl_fg('=',Color::AnsiValue((235 + i).try_into().unwrap())));
+        engine.line(car_x1 +1, car_y2 -i, new_car_x2 -1, car_y2 - i, pixel::pxl_fg('=',Color::AnsiValue((235 + i).try_into().unwrap())));
+
+    }
+
 
 }
 fn main() {
@@ -538,11 +668,11 @@ fn main() {
 
         // draw a rectangle with an emoji inside
         //engine.rect(0, 0, 5, 4, pixel::pxl('#'));
-        moving_background_anim(&mut engine, frame, tree_count, space, &rand_arr);
-        train_window_static(&mut engine, 2);
+        //moving_background_anim(&mut engine, frame, tree_count, space, &rand_arr);
+        //train_window_static(&mut engine, 2);
         //station_enter_anim(&mut engine, frame);
         //engine.set_pxl(2, 2, pixel::pxl('👍'));
-
+        top_down_view(&mut engine, frame);
         if engine.is_key_pressed(KeyCode::Char('q')) {
             break;
         }
