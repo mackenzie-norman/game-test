@@ -1,3 +1,4 @@
+use std::clone;
 use std::iter::Enumerate;
 
 use console_engine::crossterm::style;
@@ -584,7 +585,7 @@ fn top_down_tracks(engine: &mut ConsoleEngine, frame:i32 , x1:i32, y1: i32, x2: 
 
     }
 }
-fn top_down_view(engine: &mut ConsoleEngine, frame:i32,){// _car:TrainCar){
+fn top_down_view(engine: &mut ConsoleEngine, frame:i32,) -> Vec<((i32, i32), (i32, i32))>{// _car:TrainCar){
     let window_char = pixel::pxl_fbg('=', Color::AnsiValue(51) , Color::AnsiValue(57));
     let window_char = pixel::pxl_fg('=', Color::AnsiValue(57));
     let seat_char = pixel::pxl_fg('%', Color::AnsiValue((52)));
@@ -602,6 +603,7 @@ fn top_down_view(engine: &mut ConsoleEngine, frame:i32,){// _car:TrainCar){
     
     engine.fill_rect(car_x1, car_y1, car_x2, car_y2, pixel::pxl_fg('+', Color::DarkGrey));
     engine.rect_border(car_x1, car_y1, car_x2, car_y2, BorderStyle::new_simple());
+    let mut seat_boxs: Vec<((i32, i32), (i32, i32))> = Vec::new();
     //draw windows
     let window_width = 9;
     let seat_height = 2;
@@ -616,6 +618,10 @@ fn top_down_view(engine: &mut ConsoleEngine, frame:i32,){// _car:TrainCar){
             engine.fill_rect(i+2, car_y1 + 2 + seat_height , i + seat_width +2, car_y1 + 1 +  2* seat_height, seat_char);
             engine.fill_rect(i+2, car_y2 - 1  , i + seat_width +2, car_y2  - seat_height, seat_char);
             engine.fill_rect(i+2, car_y2 - 2 - seat_height , i + seat_width +2, car_y2 - 1 -  2* seat_height, seat_char);
+            seat_boxs.push(((i+2, car_y1 + 1 ), ( i + seat_width +2 ,car_y1  + seat_height)));
+            seat_boxs.push(((i+2, car_y1 + 2 + seat_height),(  i + seat_width +2, car_y1 + 1 +  2* seat_height)));
+            seat_boxs.push(((i+2, car_y2 - 1  ), (i + seat_width +2, car_y2  - seat_height)));
+            seat_boxs.push(((i+2, car_y2 - 2 - seat_height ),( i + seat_width +2, car_y2 - 1 -  2* seat_height, )));
             //engine.set_pxl(i, car_y1, window_char);
             //engine.set_pxl(i, car_y2, window_char);
             //engine.set_pxl(i+ 1, car_y1, window_char);
@@ -653,7 +659,7 @@ fn top_down_view(engine: &mut ConsoleEngine, frame:i32,){// _car:TrainCar){
         engine.line(car_x1 +1, car_y2 -i, new_car_x2 -1, car_y2 - i, pixel::pxl_fg('=',Color::AnsiValue((235 + i).try_into().unwrap())));
 
     }
-
+    seat_boxs
 
 }
 fn pt_in_box(pt:(i32,i32), boxx: ((i32,i32),(i32,i32))) -> bool{
@@ -668,13 +674,27 @@ fn pt_in_box(pt:(i32,i32), boxx: ((i32,i32),(i32,i32))) -> bool{
 }
 struct Dialouge<'a>{
     choices: Vec<&'a str>,
+    child_diags: Vec<&'a mut Dialouge<'a>>, 
     prompt : String,
     is_prompting:bool,
     is_active: bool,
+    current_char: u32,
     choice: i32
 }
+
 impl <'a> Dialouge<'a>{
-    fn write_prompt(& mut self, engine: &mut ConsoleEngine, frame:i32){
+    fn new( choices: Vec<&'a str>, diags: Vec<&'a mut Dialouge<'a>>, prompt : String, ) -> Dialouge<'a>{
+        Dialouge{
+            choices: choices,
+            child_diags: diags,
+            prompt: prompt,
+            is_prompting: true, 
+            is_active: false, 
+            choice: -1, 
+            current_char:0}
+        
+    }
+    fn write_prompt(& mut self, engine: &mut ConsoleEngine, frame:i32) -> &mut Dialouge<'a>{
         self.is_active = true;
         let max_chars = 1024;
         let bg_char = pixel::pxl_bg(' ', Color::Black);
@@ -683,19 +703,22 @@ impl <'a> Dialouge<'a>{
 
         let box_x1: i32 = screen_width/6;
         let box_x2: i32 = screen_width - box_x1;
-    
-        let box_y1 = screen_height/3 + screen_height/3;// + screen_height/36;
-        let box_y2 = screen_height - screen_height/6;
+     
+        let box_y1 = screen_height/3 + screen_height/3 + screen_height/24;// + screen_height/36;
+        let box_y2 = screen_height - screen_height/6 + screen_height/24;
+        let mut speaker_name = "Dick Gobbla";
     // Lets add some scenery
         //TODO chunk chars to pages 
         engine.fill_rect(box_x1, box_y1, box_x2, box_y2, bg_char);
         engine.rect_border(box_x1, box_y1, box_x2, box_y2, BorderStyle::new_heavy());
         if self.is_prompting {
-
-            engine.print(box_x1 + 1, box_y1 + 1, &self.prompt);
+            //let mut print_str = self.prompt.clone();
+            let print_str: String = self.prompt.chars().take(self.current_char.try_into().unwrap()).collect();
+            engine.print(box_x1 + 1, box_y1 + 1,&print_str );
+            self.current_char += 2;
             if engine.is_key_pressed(KeyCode::Enter){
                 self.is_prompting = false;
-                return;
+                //return self;
             }
             let mouse_pos = engine.get_mouse_press(MouseButton::Left);
             if let Some(mouse_pos) = mouse_pos {
@@ -709,6 +732,8 @@ impl <'a> Dialouge<'a>{
             }
         }
         else if self.choice == -1{
+            speaker_name = "You";
+            self.current_char = 0;
             let mut opt_boxs: Vec<((i32, i32), (i32, i32))> = Vec::new();
             for i in self.choices.iter().enumerate(){
 
@@ -739,21 +764,36 @@ impl <'a> Dialouge<'a>{
                 }
             }
         }else if self.choice > -1{
-            engine.print(box_x1 + 1, box_y1 + 1, self.choices[self.choice as usize]);
+            speaker_name = "You";
+            let print_str: String = self.choices[self.choice as usize].chars().take(self.current_char.try_into().unwrap()).collect();
+            engine.print(box_x1 + 1, box_y1 + 1,&print_str );
+            self.current_char += 2;
             let mouse_pos = engine.get_mouse_press(MouseButton::Left);
             if let Some(mouse_pos) = mouse_pos {
                 let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
                 if new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2{
-                    self.is_prompting = false;
+                    //self.is_prompting = false;
+                    if self.child_diags.len() > self.choice as usize{
+                        self.child_diags[self.choice as usize].is_active = true;
+                        return self.child_diags[self.choice as usize];
+                    }
+
                 } 
                 else{
-                    self.is_prompting = true;
-                    self.is_active = false;
-                    self.choice = -1;
+                    self.reset();
                 }
             }
 
         }
+        engine.print_fbg(box_x1 + 1, box_y1, speaker_name, Color::Green, Color::Black);
+        return self;
+    }
+    fn reset(& mut self){
+        self.is_prompting = true;
+        self.is_active = false;
+        self.choice = -1;
+        self.current_char = 0;
+
     }
 }
 fn main() {
@@ -765,8 +805,16 @@ fn main() {
     let mut space = 8;
     let rand_arr: Vec<i32> = (0..tree_count).map(|x| rng.random_range(1..=5)).collect();
     let mut in_seat = false;
-    let mut first_diag = Dialouge{choices: vec!["Fuck off , Dick", "Dick Gobbla? I hardly know er"],prompt: "Hey! Dick Gobbla here, how the hell are ya!".to_string() , is_prompting: true, is_active: false, choice: -1};
+    let mut binding = Dialouge::new(vec!["??", "I already bought the tickets!!"], vec![], "What! Ahh Hell Nah!!".to_string());
+    //let mut insanity = binding.clone();
+    //binding.child_diags.push(& mut insanity);
+
+    let mut first_diag = Dialouge::new( vec!["Fuck off , Dick", "Dick Gobbla? I hardly know er"],
+    vec![& mut binding],
+     "Hey! Dick Gobbla here, how the hell are ya!".to_string());
+    let mut cur_diag = & mut first_diag;
     let mut in_diag = false;
+    let mut seats: Vec<((i32, i32), (i32, i32))> = top_down_view(&mut engine, frame);
     loop {
         engine.wait_frame();
         engine.clear_screen();
@@ -779,18 +827,29 @@ fn main() {
             moving_background_anim(&mut engine, frame, tree_count, space, &rand_arr);
             train_window_static(&mut engine, 2, false);
             
-            first_diag.write_prompt(&mut engine,frame);
-            in_diag = first_diag.is_active;
+            cur_diag = cur_diag.write_prompt(&mut engine,frame);
+            in_diag = cur_diag.is_active;
             
         }
         else
         {
 
-        top_down_view(&mut engine, frame);
+            seats = top_down_view(&mut engine, frame);
         }
         let mouse_pos = engine.get_mouse_press(MouseButton::Left);
         if let Some(mouse_pos) = mouse_pos {
+            //lets see if we clicked a seat!
             if !in_diag{
+                let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
+                for sb in &seats{
+                    if pt_in_box(new_mouse_pos, *sb){
+                        println!("WORKING");
+                        in_seat = true;
+                        // !in_seat;
+
+                        break;
+                    }
+                }
                 in_seat = !in_seat;
                 frame = 200;
 
