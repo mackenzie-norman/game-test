@@ -15,7 +15,7 @@ use rand::Rng;
 fn random(max: u32) -> u32 {
     rand::random::<u32>() % max
 }
-
+/*
 /// Direction the snake can face
 enum Direction {
     North,
@@ -272,10 +272,10 @@ fn main() {
     // print the screen to the terminal
     scr.draw();
 }
-/*
+
 //use console_engine::pixel;
 //use console_engine::KeyCode;
-use console_engine::MouseButton;
+
 
 fn main() {
     // initializes a screen filling the terminal with a target of 30 frames per second
@@ -311,7 +311,9 @@ fn main() {
         engine.draw(); // draw the screen
     }
 }
+*/
 
+use console_engine::MouseButton;
 fn bogey(engine: &mut ConsoleEngine, frame:i32, start_val: i32, bottom:i32){
     engine.fill_circle(start_val + frame  , bottom, 4, pixel::pxl_fg('@', Color::DarkGrey));
     engine.fill_rect(start_val + frame, bottom, start_val + frame - 17, bottom + 2,pixel::pxl_fg('@', Color::DarkGrey) );
@@ -494,11 +496,11 @@ fn bush(engine: &mut ConsoleEngine, frame:i32, x1: i32, y1: i32, scale:u32){
 }
 
 
-fn train_window_static(engine: &mut ConsoleEngine, windows:i32 ){
+fn train_window_static(engine: &mut ConsoleEngine, windows:i32, draw_seats: bool ){
     //fill bottom
     //let windows = 3;
     let seat_char = pixel::pxl_fg('%', Color::AnsiValue((52)));
-    let draw_seats = true;
+    //let draw_seats = true;
     let wall_char  = pixel::pxl_fg('X', Color::DarkGrey);
     let screen_width =(engine.get_width()) as i32;
     let screen_height =(engine.get_height()) as i32;
@@ -591,7 +593,7 @@ fn top_down_view(engine: &mut ConsoleEngine, frame:i32,){// _car:TrainCar){
     let car_x1: i32 = screen_width/6;
     let car_x2: i32 = screen_width - car_x1;
     
-    let car_y1 = 0 + screen_height/3;;// + screen_height/36;
+    let car_y1 = 0 + screen_height/3;// + screen_height/36;
     let car_y2 = screen_height - car_y1;
     // Lets add some scenery
     engine.fill_rect(40 + frame, 0,-400 + frame, screen_height , pixel::pxl_fg('#', Color::AnsiValue(101)));
@@ -654,6 +656,106 @@ fn top_down_view(engine: &mut ConsoleEngine, frame:i32,){// _car:TrainCar){
 
 
 }
+fn pt_in_box(pt:(i32,i32), boxx: ((i32,i32),(i32,i32))) -> bool{
+    let box_x1: i32 = boxx.0.0;
+    let box_x2: i32 = boxx.1.0;
+    
+    let box_y1 = boxx.0.1;
+    let box_y2 = boxx.1.1;
+
+    pt.0 < box_x2 && pt.0 > box_x1 && pt.1 > box_y1 && pt.1 < box_y2
+
+}
+struct Dialouge<'a>{
+    choices: Vec<&'a str>,
+    prompt : String,
+    is_prompting:bool,
+    is_active: bool,
+    choice: i32
+}
+impl <'a> Dialouge<'a>{
+    fn write_prompt(& mut self, engine: &mut ConsoleEngine, frame:i32){
+        self.is_active = true;
+        let max_chars = 1024;
+        let bg_char = pixel::pxl_bg(' ', Color::Black);
+        let screen_width: i32 =(engine.get_width()) as i32;
+        let screen_height: i32 =(engine.get_height()) as i32;
+
+        let box_x1: i32 = screen_width/6;
+        let box_x2: i32 = screen_width - box_x1;
+    
+        let box_y1 = screen_height/3 + screen_height/3;// + screen_height/36;
+        let box_y2 = screen_height - screen_height/6;
+    // Lets add some scenery
+        //TODO chunk chars to pages 
+        engine.fill_rect(box_x1, box_y1, box_x2, box_y2, bg_char);
+        engine.rect_border(box_x1, box_y1, box_x2, box_y2, BorderStyle::new_heavy());
+        if self.is_prompting {
+
+            engine.print(box_x1 + 1, box_y1 + 1, &self.prompt);
+            if engine.is_key_pressed(KeyCode::Enter){
+                self.is_prompting = false;
+                return;
+            }
+            let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+            if let Some(mouse_pos) = mouse_pos {
+                let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
+                if (new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2) {
+                    self.is_prompting = false;
+                } 
+                else{
+                    self.is_active = false;
+                }
+            }
+        }
+        else if self.choice == -1{
+            let mut opt_boxs: Vec<((i32, i32), (i32, i32))> = Vec::new();
+            for i in self.choices.iter().enumerate(){
+
+                engine.rect_border(box_x1 + 1, box_y1  +1+  3 * (i.0 as i32), box_x1 +2 + i.1.len() as i32, box_y1  +  3 * (i.0 as i32) + 3, BorderStyle::new_simple());
+                engine.print(box_x1 + 2,box_y1  + 2+ 3 * (i.0 as i32) , i.1);
+                opt_boxs.push(((box_x1 + 2  , box_y1  +  3 * (i.0 as i32)),( box_x1 + 10 + i.1.len() as i32, box_y1  +  3 * (i.0 as i32) + 3)));
+
+            }
+            let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+            if let Some(mouse_pos) = mouse_pos {
+                let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
+                if new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2{
+                    //self.is_prompting = false;
+                    
+                    for i in opt_boxs.iter().enumerate(){
+                        if pt_in_box(new_mouse_pos, *i.1){
+                            
+                            //engine.fill_rect(box_x1, box_y1, box_x2, box_y2, bg_char);
+                            //engine.print(box_x1 + 1, box_y1 + 1,self.choices[i.0]); 
+                            self.choice = i.0.try_into().unwrap_or(-1);
+                        }
+                    };
+                    
+                } 
+                else{
+                    self.is_active = false;
+                    self.is_prompting = true;
+                }
+            }
+        }else if self.choice > -1{
+            engine.print(box_x1 + 1, box_y1 + 1, self.choices[self.choice as usize]);
+            let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+            if let Some(mouse_pos) = mouse_pos {
+                let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
+                if new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2{
+                    self.is_prompting = false;
+                } 
+                else{
+                    self.is_prompting = true;
+                    self.is_active = false;
+                    self.choice = -1;
+                }
+            }
+
+        }
+    }
+}
 fn main() {
     let mut engine = console_engine::ConsoleEngine::init_fill(20).unwrap();
     let mut frame = 0;
@@ -662,22 +764,50 @@ fn main() {
     let tree_count = 200;//rng.random_range(0..12);
     let mut space = 8;
     let rand_arr: Vec<i32> = (0..tree_count).map(|x| rng.random_range(1..=5)).collect();
+    let mut in_seat = false;
+    let mut first_diag = Dialouge{choices: vec!["Fuck off , Dick", "Dick Gobbla? I hardly know er"],prompt: "Hey! Dick Gobbla here, how the hell are ya!".to_string() , is_prompting: true, is_active: false, choice: -1};
+    let mut in_diag = false;
     loop {
         engine.wait_frame();
         engine.clear_screen();
 
         // draw a rectangle with an emoji inside
         //engine.rect(0, 0, 5, 4, pixel::pxl('#'));
-        //moving_background_anim(&mut engine, frame, tree_count, space, &rand_arr);
-        //train_window_static(&mut engine, 2);
+        
+        if in_seat{
+            
+            moving_background_anim(&mut engine, frame, tree_count, space, &rand_arr);
+            train_window_static(&mut engine, 2, false);
+            
+            first_diag.write_prompt(&mut engine,frame);
+            in_diag = first_diag.is_active;
+            
+        }
+        else
+        {
+
+        top_down_view(&mut engine, frame);
+        }
+        let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+        if let Some(mouse_pos) = mouse_pos {
+            if !in_diag{
+                in_seat = !in_seat;
+                frame = 200;
+
+            }
+        }
+
         //station_enter_anim(&mut engine, frame);
         //engine.set_pxl(2, 2, pixel::pxl('👍'));
-        top_down_view(&mut engine, frame);
+        /* 
+        */
+        
         if engine.is_key_pressed(KeyCode::Char('q')) {
             break;
         }
 
         engine.draw();
         frame += 1;
+        frame = frame % 600;
     }
-}*/
+}
