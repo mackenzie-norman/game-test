@@ -2,319 +2,20 @@ use std::clone;
 use std::iter::Enumerate;
 
 use console_engine::crossterm::style;
-use console_engine::pixel;
-use console_engine::pixel::pxl_fg;
-use console_engine::pixel::Pixel;
+use console_engine::pixel::{self, Pixel};
 use console_engine::rect_style::BorderStyle;
 use console_engine::screen;
-use console_engine::Color;
+use console_engine::{Color, MouseButton};
 use console_engine::ConsoleEngine;
 use console_engine::KeyCode;
 use rand::Rng;
-#[allow(dead_code)]
-/// custom function for generating a random u32 bound into [0;max[
-fn random(max: u32) -> u32 {
-    rand::random::<u32>() % max
-}
-/*
-/// Direction the snake can face
-enum Direction {
-    North,
-    East,
-    South,
-    West,
-}
+mod dialouge;
+use dialouge::{Dialouge, pt_in_box};
+mod character;
+use character::Character;
 
-/// Snake structure :  
-/// The game logic fits in it
-struct Snake {
-    playing: bool,
-    bound_w: u32,
-    bound_h: u32,
-    direction: Direction,
-    old_dx: i8,
-    old_dy: i8,
-    pos_x: u32,
-    pos_y: u32,
-    apple_x: u32,
-    apple_y: u32,
-    body: Vec<(u32, u32)>,
-}
+#[allow(dead_code, unused)]
 
-impl Snake {
-    /// Game initialization
-    pub fn init(game_width: u32, game_height: u32) -> Snake {
-        Snake {
-            playing: false,
-            bound_w: game_width,
-            bound_h: game_height,
-            direction: Direction::East,
-            old_dx: 1, // start condition should be 1 due to starting direction being East
-            old_dy: 0,
-            pos_x: 4,
-            pos_y: 4,
-            apple_x: 0,
-            apple_y: 0,
-            body: vec![(3, 4), (2, 4)],
-        }
-    }
-
-    /// Generates an apple in the board
-    fn gen_apple(&mut self) {
-        let mut count_fallback = 0;
-        loop {
-            // randomly get coordinates
-            let x = random(self.bound_w);
-            let y = random(self.bound_h);
-
-            // check if the coordinates aren't colliding with the snake's body
-            // sets the position if no collision
-            if !self.body.contains(&(x, y)) {
-                self.apple_x = x;
-                self.apple_y = y;
-                return;
-            }
-            count_fallback += 1;
-            // if 50 tries did not succeed
-            if count_fallback > 50 {
-                // bruteforce the first available position
-                for y in 0..self.bound_h {
-                    for x in 0..self.bound_w {
-                        if !self.body.contains(&(x, y)) {
-                            self.apple_x = x;
-                            self.apple_y = y;
-                            return;
-                        }
-                    }
-                }
-                // if bruteforce failed, game has been won
-                self.playing = false;
-                return;
-            }
-        }
-    }
-
-    pub fn input(&mut self, engine: &ConsoleEngine) {
-        if self.playing {
-            // Change snake's direction based on a keypad layout
-            if engine.is_key_pressed(KeyCode::Char('8')) || engine.is_key_pressed(KeyCode::Up) {
-                self.direction = Direction::North;
-            }
-            if engine.is_key_pressed(KeyCode::Char('6')) || engine.is_key_pressed(KeyCode::Right) {
-                self.direction = Direction::East;
-            }
-            if engine.is_key_pressed(KeyCode::Char('2')) || engine.is_key_pressed(KeyCode::Down) {
-                self.direction = Direction::South;
-            }
-            if engine.is_key_pressed(KeyCode::Char('4')) || engine.is_key_pressed(KeyCode::Left) {
-                self.direction = Direction::West;
-            }
-        } else {
-            // check when the player starts the game with space
-            if engine.is_key_pressed(KeyCode::Char(' ')) {
-                // Initialize game values to a starting state
-                self.playing = true;
-                self.direction = Direction::East;
-                self.old_dx = 1;
-                self.old_dy = 0;
-                self.pos_x = 4;
-                self.pos_y = 4;
-                self.body = vec![(3, 4), (2, 4)];
-                self.gen_apple();
-            }
-        }
-    }
-
-    pub fn update_position(&mut self) {
-        if self.playing {
-            // calculates the delta_x and delta_y
-            // based on facing direction
-            let mut dx = 0;
-            let mut dy = 0;
-            match self.direction {
-                Direction::North => dy = -1,
-                Direction::East => dx = 1,
-                Direction::South => dy = 1,
-                Direction::West => dx = -1,
-            }
-
-            // checks to see if old inputed direction overlaps with actual inputed direction
-            // such as East then West.. This would cause the game to think that the snake collided
-            // with itself causing a gameover >>
-            // if dx's or dy's are opposites then continue moving in old direction
-            if self.old_dx + dx == 0 || self.old_dy + dy == 0 {
-                dx = self.old_dx;
-                dy = self.old_dy;
-            } else {
-                self.old_dx = dx;
-                self.old_dy = dy;
-            }
-
-            // if the snake collides with top and left boundaries, game over
-            // this check need to be made first to bypass an underflowing
-            if self.pos_x == 0 && dx == -1 || self.pos_y == 0 && dy == -1 {
-                self.playing = false;
-                return;
-            }
-
-            // calculate new position, can't underflow because of the check above
-            let new_pos = (
-                (self.pos_x as i32 + dx as i32) as u32,
-                (self.pos_y as i32 + dy as i32) as u32,
-            );
-
-            // if collide with bottom and right boundaries, game over
-            if new_pos.0 >= self.bound_w || new_pos.1 >= self.bound_h {
-                self.playing = false;
-                return;
-            }
-
-            // if collide with own tail, game over
-            if self.body.contains(&new_pos) {
-                self.playing = false;
-                return;
-            }
-
-            // if collide with apple, add a new segment in snake's body
-            // and generate a new apple
-            if new_pos == (self.apple_x, self.apple_y) {
-                self.body.insert(0, (self.pos_x, self.pos_y));
-                self.gen_apple();
-            }
-
-            // if still alive, move the body
-            if self.playing {
-                self.body.insert(0, (self.pos_x, self.pos_y));
-                self.pos_x = new_pos.0;
-                self.pos_y = new_pos.1;
-                self.body.pop();
-            }
-        }
-    }
-
-    pub fn draw(&self, engine: &mut ConsoleEngine) {
-        if self.playing {
-            // draw apple
-            engine.set_pxl(
-                self.apple_x as i32,
-                self.apple_y as i32,
-                pixel::pxl_fg('O', Color::Red),
-            );
-            // draw snake's body
-            for segment in self.body.iter() {
-                engine.set_pxl(
-                    segment.0 as i32,
-                    segment.1 as i32,
-                    pixel::pxl_fg('█', Color::Green),
-                );
-            }
-            // don't forget snake's head !
-            engine.set_pxl(
-                self.pos_x as i32,
-                self.pos_y as i32,
-                pixel::pxl_fg('█', Color::DarkGreen),
-            )
-        } else {
-            // blink a message, inviting the player to press space
-            // and display controls on the other side
-            if engine.frame_count % 8 >= 4 {
-                engine.print_fbg(2, 1, "Press", Color::Yellow, Color::Black);
-                engine.print_fbg(2, 2, "Space", Color::Yellow, Color::Black);
-                engine.print_fbg(3, 3, "To", Color::Yellow, Color::Black);
-                engine.print_fbg(2, 4, "Play", Color::Yellow, Color::Black);
-            } else {
-                engine.print(4, 1, "8");
-                engine.print(4, 2, "^");
-                engine.print(1, 3, "4 < > 6");
-                engine.print(4, 4, "v");
-                engine.print(4, 5, "2");
-            }
-            // score is always displayed
-            engine.print(1, 8, format!("Score:{}", self.body.len() - 2).as_str());
-        }
-    }
-}
- 
-fn main() {
-    // initializes a screen filling the terminal of at least 10x10 of size with a target of 4 frame per second
-    let mut engine = console_engine::ConsoleEngine::init_fill_require(10, 10, 16).unwrap();
-
-    // initialize game here, providing term size as boundaries
-    let mut snake = Snake::init(engine.get_width(), engine.get_height());
-
-    // main loop, be aware that you'll have to break it because ctrl+C is captured
-    loop {
-        engine.wait_frame(); // wait for next frame + capture inputs
-                             // engine.check_resize(); here we do not want to resize the terminal because it could break the boundaries of the game
-
-        // exit check
-        if engine.is_key_pressed(KeyCode::Char('q')) {
-            break;
-        }
-        engine.clear_screen(); // reset the screen
-
-        // run the game
-        snake.input(&engine);
-        snake.update_position();
-        // draw the game in engine's screen
-        snake.draw(&mut engine);
-
-        engine.draw(); // draw the screen
-    }
-}
-use console_engine::rect_style::BorderStyle;
-use console_engine::screen;
-
-fn main() {
-    let mut scr = screen::Screen::new(9, 10);
-
-    scr.rect_border(0, 0, 3, 2, BorderStyle::new_simple());
-
-    // print the screen to the terminal
-    scr.draw();
-}
-
-//use console_engine::pixel;
-//use console_engine::KeyCode;
-
-
-fn main() {
-    // initializes a screen filling the terminal with a target of 30 frames per second
-    let mut engine = console_engine::ConsoleEngine::init_fill(30).unwrap();
-
-    // main loop, be aware that you'll have to break it because ctrl+C is captured
-    loop {
-        engine.wait_frame(); // wait for next frame + capture inputs
-        engine.check_resize(); // resize the terminal if its size has changed
-        if engine.is_key_pressed(KeyCode::Char('q')) {
-            // if the user presses 'q' :
-            break; // exits app
-        }
-
-        // prints a 'P' where the mouse's left button has been pressed
-        let mouse_pos = engine.get_mouse_press(MouseButton::Left);
-        if let Some(mouse_pos) = mouse_pos {
-            engine.set_pxl(mouse_pos.0 as i32, mouse_pos.1 as i32, pixel::pxl('P'));
-        }
-
-        // prints a 'H' where the mouse is currently held
-        let mouse_pos = engine.get_mouse_held(MouseButton::Left);
-        if let Some(mouse_pos) = mouse_pos {
-            engine.set_pxl(mouse_pos.0 as i32, mouse_pos.1 as i32, pixel::pxl('H'));
-        }
-
-        // prints a 'R' where the mouse has been released
-        let mouse_pos = engine.get_mouse_released(MouseButton::Left);
-        if let Some(mouse_pos) = mouse_pos {
-            engine.set_pxl(mouse_pos.0 as i32, mouse_pos.1 as i32, pixel::pxl('R'));
-        }
-
-        engine.draw(); // draw the screen
-    }
-}
-*/
-
-use console_engine::MouseButton;
 fn bogey(engine: &mut ConsoleEngine, frame:i32, start_val: i32, bottom:i32){
     engine.fill_circle(start_val + frame  , bottom, 4, pixel::pxl_fg('@', Color::DarkGrey));
     engine.fill_rect(start_val + frame, bottom, start_val + frame - 17, bottom + 2,pixel::pxl_fg('@', Color::DarkGrey) );
@@ -544,6 +245,7 @@ fn train_window_static(engine: &mut ConsoleEngine, windows:i32, draw_seats: bool
     engine.fill_rect(window_start_x - 1, 0, screen_width, screen_height , wall_char);
 
 }
+
 struct TrainCar<'a> {
     back: &'a TrainCar<'a>,
     front: &'a TrainCar<'a>,
@@ -618,10 +320,10 @@ fn top_down_view(engine: &mut ConsoleEngine, frame:i32,) -> Vec<((i32, i32), (i3
             engine.fill_rect(i+2, car_y1 + 2 + seat_height , i + seat_width +2, car_y1 + 1 +  2* seat_height, seat_char);
             engine.fill_rect(i+2, car_y2 - 1  , i + seat_width +2, car_y2  - seat_height, seat_char);
             engine.fill_rect(i+2, car_y2 - 2 - seat_height , i + seat_width +2, car_y2 - 1 -  2* seat_height, seat_char);
-            seat_boxs.push(((i+2, car_y1 + 1 ), ( i + seat_width +2 ,car_y1  + seat_height)));
-            seat_boxs.push(((i+2, car_y1 + 2 + seat_height),(  i + seat_width +2, car_y1 + 1 +  2* seat_height)));
-            seat_boxs.push(((i+2, car_y2 - 1  ), (i + seat_width +2, car_y2  - seat_height)));
-            seat_boxs.push(((i+2, car_y2 - 2 - seat_height ),( i + seat_width +2, car_y2 - 1 -  2* seat_height, )));
+            seat_boxs.push(((i, car_y1 + 1 ), ( i + seat_width +2 ,car_y1  + seat_height)));
+            seat_boxs.push(((i, car_y1 + 2 + seat_height),(  i + seat_width +3, car_y1 + 1 +  2* seat_height)));
+            seat_boxs.push(((i, car_y2 - 1  ), (i + seat_width +3, car_y2  - seat_height)));
+            seat_boxs.push(((i, car_y2 - 2 - seat_height ),( i + seat_width +3, car_y2 - 1 -  2* seat_height, )));
             //engine.set_pxl(i, car_y1, window_char);
             //engine.set_pxl(i, car_y2, window_char);
             //engine.set_pxl(i+ 1, car_y1, window_char);
@@ -662,140 +364,96 @@ fn top_down_view(engine: &mut ConsoleEngine, frame:i32,) -> Vec<((i32, i32), (i3
     seat_boxs
 
 }
-fn pt_in_box(pt:(i32,i32), boxx: ((i32,i32),(i32,i32))) -> bool{
-    let box_x1: i32 = boxx.0.0;
-    let box_x2: i32 = boxx.1.0;
+fn fill_parrallegram(engine: &mut ConsoleEngine, frame:i32){
+
+}
+fn calculate_x(x1: i32, y1: i32, x2: i32, y2: i32, y_need_x: i32) -> i32 {
+    if x1 == x2 {
+        panic!("Slope is undefined (vertical line).");
+    }
+
+    let slope = (y2 - y1) as f64 / (x2 - x1) as f64;
+    let x = (y_need_x as f64 /slope) as f64;
     
-    let box_y1 = boxx.0.1;
-    let box_y2 = boxx.1.1;
-
-    pt.0 < box_x2 && pt.0 > box_x1 && pt.1 > box_y1 && pt.1 < box_y2
-
+    x.round() as i32 + x1// Round to nearest integer if needed
 }
-struct Dialouge<'a>{
-    choices: Vec<&'a str>,
-    child_diags: Vec<&'a mut Dialouge<'a>>, 
-    prompt : String,
-    is_prompting:bool,
-    is_active: bool,
-    current_char: u32,
-    choice: i32
-}
-
-impl <'a> Dialouge<'a>{
-    fn new( choices: Vec<&'a str>, diags: Vec<&'a mut Dialouge<'a>>, prompt : String, ) -> Dialouge<'a>{
-        Dialouge{
-            choices: choices,
-            child_diags: diags,
-            prompt: prompt,
-            is_prompting: true, 
-            is_active: false, 
-            choice: -1, 
-            current_char:0}
-        
+fn calculate_y(x1: i32, y1: i32, x2: i32, y2: i32, x_need_y: i32) -> i32 {
+    if x1 == x2 {
+        panic!("Slope is undefined (vertical line).");
     }
-    fn write_prompt(& mut self, engine: &mut ConsoleEngine, frame:i32) -> &mut Dialouge<'a>{
-        self.is_active = true;
-        let max_chars = 1024;
-        let bg_char = pixel::pxl_bg(' ', Color::Black);
-        let screen_width: i32 =(engine.get_width()) as i32;
-        let screen_height: i32 =(engine.get_height()) as i32;
 
-        let box_x1: i32 = screen_width/6;
-        let box_x2: i32 = screen_width - box_x1;
-     
-        let box_y1 = screen_height/3 + screen_height/3 + screen_height/24;// + screen_height/36;
-        let box_y2 = screen_height - screen_height/6 + screen_height/24;
-        let mut speaker_name = "Dick Gobbla";
-    // Lets add some scenery
-        //TODO chunk chars to pages 
-        engine.fill_rect(box_x1, box_y1, box_x2, box_y2, bg_char);
-        engine.rect_border(box_x1, box_y1, box_x2, box_y2, BorderStyle::new_heavy());
-        if self.is_prompting {
-            //let mut print_str = self.prompt.clone();
-            let print_str: String = self.prompt.chars().take(self.current_char.try_into().unwrap()).collect();
-            engine.print(box_x1 + 1, box_y1 + 1,&print_str );
-            self.current_char += 2;
-            if engine.is_key_pressed(KeyCode::Enter){
-                self.is_prompting = false;
-                //return self;
-            }
-            let mouse_pos = engine.get_mouse_press(MouseButton::Left);
-            if let Some(mouse_pos) = mouse_pos {
-                let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
-                if (new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2) {
-                    self.is_prompting = false;
-                } 
-                else{
-                    self.is_active = false;
-                }
-            }
+    let slope = (y2 - y1) as f64 / (x2 - x1) as f64;
+    let y = y1 as f64 + slope * (x_need_y - x1) as f64;
+    
+    y.round() as i32 // Round to nearest integer if needed
+}
+fn forward_chair(engine: &mut ConsoleEngine, frame:i32, x:i32,y:i32, scale:i32){
+    let screen_width: i32 =(engine.get_width()) as i32;
+    let screen_height: i32 =(engine.get_height()) as i32;
+    let vanishing_x: i32 = screen_width/2;
+    //let scale = 1;
+    let chair_height = screen_height/12 * scale;
+    let chair_width = screen_width/16 * scale;
+    let seat_char = pixel::pxl_fg('%', Color::AnsiValue((52)));
+    let seat_border_char = pixel::pxl_fg('%', Color::AnsiValue((255)));
+    engine.fill_circle(x+ chair_width/2, y - chair_height , (chair_width/2).try_into().unwrap(), seat_char);
+    //engine.circle(x+ chair_width/2, y- chair_height , (chair_width/2).try_into().unwrap(), seat_border_char);
+    engine.fill_rect(x, y , x + chair_width, y- chair_height, seat_char);
+
+    let end_y = calculate_y(x, y, vanishing_x, 0, x - chair_width/2 );
+    engine.line(x,y,x  -chair_width/2, end_y, seat_char);
+    let end_y = calculate_y(x + chair_width, y, vanishing_x, 0, x + chair_width/2 );
+    engine.line(x + chair_width,y,x  +chair_width/2, end_y, seat_char);
+    //engine.line(x,y + chair_height,x - chair_width/2, end_y + chair_height, seat_char);
+    //engine.rect(x, y , x + chair_width, y- chair_height, seat_border_char);
+}
+fn forward_view(engine: &mut ConsoleEngine, frame:i32){
+    let window_char = pixel::pxl_fbg('=', Color::AnsiValue(51) , Color::AnsiValue(57));
+    let window_char = pixel::pxl_fg('=', Color::AnsiValue(57));
+    let seat_char = pixel::pxl_fg('%', Color::AnsiValue(58));
+    let floor_char = pixel::pxl_fg('#', Color::AnsiValue(236));
+    let walkway_char = pixel::pxl_fg('#', Color::AnsiValue(238));
+
+    let screen_width: i32 =(engine.get_width()) as i32;
+    let screen_height: i32 =(engine.get_height()) as i32;
+    let vanishing_x: i32 = screen_width/2;
+    let offset = 6;
+    let angle = screen_width/3;
+    let floor_height = screen_height/2;
+    engine.fill_rect(0,0, screen_width, screen_height , floor_char);
+    engine.fill_rect(vanishing_x - offset, screen_height,vanishing_x + offset , 0, walkway_char);
+    for offset in  1..=6{
+        engine.line(angle, screen_height , vanishing_x - offset , 0, walkway_char);
+        engine.line(screen_width - angle, screen_height, vanishing_x +offset, 0, walkway_char);
+
+    }
+    for angle in angle..=screen_width-angle{
+    engine.line(angle, screen_height , vanishing_x  , 0, walkway_char);
+
+    }
+    engine.fill_rect(0, 0, screen_width, floor_height, seat_char);
+    engine.fill_rect(vanishing_x - 2*offset , 0 , vanishing_x + offset *2, floor_height, pixel::pxl_fg('#', Color::Black));
+    //forward_chair(engine, frame, (vanishing_x - 6* offset), 0 + 24,1);
+    //color wall
+    for i in 0..screen_height/2 + screen_height/4{
+        let mut start_x;
+        if i> screen_height/4{
+            start_x = calculate_x(angle , screen_height, vanishing_x - offset , 0, floor_height-i);
+        }else{
+            start_x = calculate_x(angle , screen_height, vanishing_x - offset , 0, floor_height );
         }
-        else if self.choice == -1{
-            speaker_name = "You";
-            self.current_char = 0;
-            let mut opt_boxs: Vec<((i32, i32), (i32, i32))> = Vec::new();
-            for i in self.choices.iter().enumerate(){
-
-                engine.rect_border(box_x1 + 1, box_y1  +1+  3 * (i.0 as i32), box_x1 +2 + i.1.len() as i32, box_y1  +  3 * (i.0 as i32) + 3, BorderStyle::new_simple());
-                engine.print(box_x1 + 2,box_y1  + 2+ 3 * (i.0 as i32) , i.1);
-                opt_boxs.push(((box_x1 + 2  , box_y1  +  3 * (i.0 as i32)),( box_x1 + 10 + i.1.len() as i32, box_y1  +  3 * (i.0 as i32) + 3)));
-
-            }
-            let mouse_pos = engine.get_mouse_press(MouseButton::Left);
-            if let Some(mouse_pos) = mouse_pos {
-                let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
-                if new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2{
-                    //self.is_prompting = false;
-                    
-                    for i in opt_boxs.iter().enumerate(){
-                        if pt_in_box(new_mouse_pos, *i.1){
-                            
-                            //engine.fill_rect(box_x1, box_y1, box_x2, box_y2, bg_char);
-                            //engine.print(box_x1 + 1, box_y1 + 1,self.choices[i.0]); 
-                            self.choice = i.0.try_into().unwrap_or(-1);
-                        }
-                    };
-                    
-                } 
-                else{
-                    self.is_active = false;
-                    self.is_prompting = true;
-                }
-            }
-        }else if self.choice > -1{
-            speaker_name = "You";
-            let print_str: String = self.choices[self.choice as usize].chars().take(self.current_char.try_into().unwrap()).collect();
-            engine.print(box_x1 + 1, box_y1 + 1,&print_str );
-            self.current_char += 2;
-            let mouse_pos = engine.get_mouse_press(MouseButton::Left);
-            if let Some(mouse_pos) = mouse_pos {
-                let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
-                if new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2{
-                    //self.is_prompting = false;
-                    if self.child_diags.len() > self.choice as usize{
-                        self.child_diags[self.choice as usize].is_active = true;
-                        return self.child_diags[self.choice as usize];
-                    }
-
-                } 
-                else{
-                    self.reset();
-                }
-            }
-
-        }
-        engine.print_fbg(box_x1 + 1, box_y1, speaker_name, Color::Green, Color::Black);
-        return self;
+        engine.line(0, screen_height/2 + screen_height/4 - i,  start_x, floor_height-i, seat_char);
+        engine.line(calculate_x(angle , screen_height, vanishing_x - offset , 0, floor_height ), floor_height , calculate_x(angle , screen_height, vanishing_x - offset , 0, floor_height ), 0, pixel::pxl_fg('#', Color::Black) );
+        //engine.fill_rect( vanishing_x - 2*offset ,0, calculate_x(angle , screen_height, vanishing_x - offset , 0, screen_height/4 ), floor_height, seat_char);
     }
-    fn reset(& mut self){
-        self.is_prompting = true;
-        self.is_active = false;
-        self.choice = -1;
-        self.current_char = 0;
+    for i in (floor_height..screen_height).step_by(12){
+        let start_x = calculate_x(angle , screen_height, vanishing_x , 0, i);
+        forward_chair(engine, frame, start_x,  i,2);
 
     }
 }
+
+
 fn main() {
     let mut engine = console_engine::ConsoleEngine::init_fill(20).unwrap();
     let mut frame = 0;
@@ -805,16 +463,25 @@ fn main() {
     let mut space = 8;
     let rand_arr: Vec<i32> = (0..tree_count).map(|x| rng.random_range(1..=5)).collect();
     let mut in_seat = false;
-    let mut binding = Dialouge::new(vec!["??", "I already bought the tickets!!"], vec![], "What! Ahh Hell Nah!!".to_string());
+    let mut binding = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
     //let mut insanity = binding.clone();
     //binding.child_diags.push(& mut insanity);
 
     let mut first_diag = Dialouge::new( vec!["Fuck off , Dick", "Dick Gobbla? I hardly know er"],
-    vec![& mut binding],
      "Hey! Dick Gobbla here, how the hell are ya!".to_string());
-    let mut cur_diag = & mut first_diag;
+    //let mut cur_diag = & mut first_diag;
+    
+    let mut dick_g = Character::new("Dick Gobbla".to_string(), &mut first_diag, 1);
+    dick_g.add_dialouge(&mut binding);
+    let mut oth_d = Dialouge::new(vec![], "To the days beyond this one which are still perfect.\n\nCome On.".to_string());
+    let mut dcb = Character::new("David Berman".to_string(), & mut oth_d, 2);
+
     let mut in_diag = false;
     let mut seats: Vec<((i32, i32), (i32, i32))> = top_down_view(&mut engine, frame);
+
+
+
+
     loop {
         engine.wait_frame();
         engine.clear_screen();
@@ -826,15 +493,19 @@ fn main() {
             
             moving_background_anim(&mut engine, frame, tree_count, space, &rand_arr);
             train_window_static(&mut engine, 2, false);
-            
-            cur_diag = cur_diag.write_prompt(&mut engine,frame);
-            in_diag = cur_diag.is_active;
+            //in_diag = dick_g.talk_to(&mut engine, frame); 
+            dick_g.draw_face(&mut engine, frame, 12, 10);
+            in_diag = dcb.talk_to(&mut engine, frame);
+            //cur_diag = cur_diag.write_prompt(&mut engine,frame, "Dick Gobbla");
+            //in_diag = cur_diag.is_active;
             
         }
         else
         {
 
-            seats = top_down_view(&mut engine, frame);
+            //seats = top_down_view(&mut engine, frame);
+            forward_view(&mut engine, frame);
+
         }
         let mouse_pos = engine.get_mouse_press(MouseButton::Left);
         if let Some(mouse_pos) = mouse_pos {
