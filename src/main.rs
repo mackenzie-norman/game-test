@@ -14,6 +14,8 @@ use dialouge::{Dialouge, pt_in_box};
 mod character;
 use character::Character;
 
+use serde_json::Result;
+
 #[allow(dead_code, unused)]
 
 fn bogey(engine: &mut ConsoleEngine, frame:i32, start_val: i32, bottom:i32){
@@ -463,7 +465,7 @@ fn main() {
     let mut space = 8;
     let rand_arr: Vec<i32> = (0..tree_count).map(|x| rng.random_range(1..=5)).collect();
     let mut in_seat = false;
-    let mut binding = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
+    let mut second_diag = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
     //let mut insanity = binding.clone();
     //binding.child_diags.push(& mut insanity);
 
@@ -472,7 +474,7 @@ fn main() {
     //let mut cur_diag = & mut first_diag;
     
     let mut dick_g = Character::new("Dick Gobbla".to_string(), &mut first_diag, 1);
-    dick_g.add_dialouge(&mut binding);
+    dick_g.add_dialouge(&mut second_diag);
     let mut oth_d = Dialouge::new(vec![], "To the days beyond this one which are still perfect.\n\nCome On.".to_string());
     let mut dcb = Character::new("David Berman".to_string(), & mut oth_d, 2);
 
@@ -540,4 +542,9 @@ fn main() {
         frame += 1;
         frame = frame % 600;
     }
+    let mut second_diag = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
+    let j = serde_json::to_string(&second_diag);
+    
+    println!("test print: {}", j.unwrap());
+    println!("GHELP");
 }

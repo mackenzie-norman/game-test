@@ -9,6 +9,8 @@ use console_engine::screen;
 use console_engine::{Color,MouseButton};
 use console_engine::ConsoleEngine;
 use console_engine::KeyCode;
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
 use rand::Rng;
 
 pub fn pt_in_box(pt:(i32,i32), boxx: ((i32,i32),(i32,i32))) -> bool{
@@ -21,7 +23,10 @@ pub fn pt_in_box(pt:(i32,i32), boxx: ((i32,i32),(i32,i32))) -> bool{
     pt.0 < box_x2 && pt.0 > box_x1 && pt.1 > box_y1 && pt.1 < box_y2
 
 }
-pub struct Dialouge<'a>{
+
+
+#[derive(Serialize)]
+pub struct Dialouge<'a> {
     choices: Vec<&'a str>,
     prompt : String,
     pub is_prompting:bool,
@@ -145,4 +150,5 @@ impl <'a> Dialouge<'a>{
         self.current_char = 0;
 
     }
+    
 }
