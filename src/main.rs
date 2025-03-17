@@ -1,10 +1,6 @@
-use std::clone;
-use std::iter::Enumerate;
 
-use console_engine::crossterm::style;
-use console_engine::pixel::{self, Pixel};
+use console_engine::pixel::{self};
 use console_engine::rect_style::BorderStyle;
-use console_engine::screen;
 use console_engine::{Color, MouseButton};
 use console_engine::ConsoleEngine;
 use console_engine::KeyCode;
@@ -14,7 +10,6 @@ use dialouge::{Dialouge, pt_in_box};
 mod character;
 use character::Character;
 
-use serde_json::Result;
 
 #[allow(dead_code, unused)]
 
@@ -98,7 +93,7 @@ fn moving_background_anim(engine: &mut ConsoleEngine, frame:i32, tree_count: i32
     let gnd = 52;
     let heaven_line = gnd -12;
     let draw_sky = false;
-    let mut og_space = space;
+    let og_space = space;
     //TODO ADDD ASSERT
     for i in  heaven_line..gnd + 10{
         engine.line(0 , i, engine.get_width() as i32, i, pixel::pxl_fg('#', Color::AnsiValue(101)));
@@ -136,7 +131,7 @@ fn road(engine: &mut ConsoleEngine, frame: i32, x1:i32, y1: i32, width:i32, leng
     for i in 0..width{
         if i != mid{
 
-            engine.line(x1 - length + frame, y1 -i , x1  + frame, (y1 - i) , pixel::pxl_fg('$', Color::DarkGrey))
+            engine.line(x1 - length + frame, y1 -i , x1  + frame, y1 - i , pixel::pxl_fg('$', Color::DarkGrey))
         }else{
 
             for x in (x1 - length + frame).. (x1 + frame){
@@ -179,7 +174,7 @@ fn power_line(engine: &mut ConsoleEngine, frame:i32, x1: i32, x2:i32, gnd:  i32)
     
     engine.fill_rect(x2 + frame   , heaven_line + 1, x2 +width + frame , heaven_line - height , pixel::pxl_fg('#', Color::AnsiValue(16)));
     engine.fill_rect(x1 + frame   , heaven_line + 1, x1 +width + frame , heaven_line - height , pixel::pxl_fg('#', Color::AnsiValue(16)));
-    for tple in curve_gen(x1 + (width/2), x2  + (width/2), (heaven_line- height), (4)){
+    for tple in curve_gen(x1 + (width/2), x2  + (width/2), heaven_line- height, 4){
         engine.set_pxl(tple.0 + frame,tple.1,pixel::pxl('*'));
     }
     
@@ -203,13 +198,13 @@ fn bush(engine: &mut ConsoleEngine, frame:i32, x1: i32, y1: i32, scale:u32){
 fn train_window_static(engine: &mut ConsoleEngine, windows:i32, draw_seats: bool ){
     //fill bottom
     //let windows = 3;
-    let seat_char = pixel::pxl_fg('%', Color::AnsiValue((52)));
+    let seat_char = pixel::pxl_fg('%', Color::AnsiValue(52));
     //let draw_seats = true;
     let wall_char  = pixel::pxl_fg('X', Color::DarkGrey);
     let screen_width =(engine.get_width()) as i32;
     let screen_height =(engine.get_height()) as i32;
     //let mut spacing = screen_width /10;
-    let mut spacing = 4;
+    let spacing = 4;
     //spacing 
     let  mut window_start_x  =((screen_width ) /12)  as i32;
     let mut  window_start_y =((screen_height )/8 ) as i32;
@@ -292,7 +287,7 @@ fn top_down_tracks(engine: &mut ConsoleEngine, frame:i32 , x1:i32, y1: i32, x2: 
 fn top_down_view(engine: &mut ConsoleEngine, frame:i32,) -> Vec<((i32, i32), (i32, i32))>{// _car:TrainCar){
     let window_char = pixel::pxl_fbg('=', Color::AnsiValue(51) , Color::AnsiValue(57));
     let window_char = pixel::pxl_fg('=', Color::AnsiValue(57));
-    let seat_char = pixel::pxl_fg('%', Color::AnsiValue((52)));
+    let seat_char = pixel::pxl_fg('%', Color::AnsiValue(52));
     let screen_width: i32 =(engine.get_width()) as i32;
     let screen_height: i32 =(engine.get_height()) as i32;
     let car_x1: i32 = screen_width/6;
@@ -396,8 +391,8 @@ fn forward_chair(engine: &mut ConsoleEngine, frame:i32, x:i32,y:i32, scale:i32){
     //let scale = 1;
     let chair_height = screen_height/12 * scale;
     let chair_width = screen_width/16 * scale;
-    let seat_char = pixel::pxl_fg('%', Color::AnsiValue((52)));
-    let seat_border_char = pixel::pxl_fg('%', Color::AnsiValue((255)));
+    let seat_char = pixel::pxl_fg('%', Color::AnsiValue(52));
+    let seat_border_char = pixel::pxl_fg('%', Color::AnsiValue(255));
     engine.fill_circle(x+ chair_width/2, y - chair_height , (chair_width/2).try_into().unwrap(), seat_char);
     //engine.circle(x+ chair_width/2, y- chair_height , (chair_width/2).try_into().unwrap(), seat_border_char);
     engine.fill_rect(x, y , x + chair_width, y- chair_height, seat_char);
@@ -438,7 +433,7 @@ fn forward_view(engine: &mut ConsoleEngine, frame:i32){
     //forward_chair(engine, frame, (vanishing_x - 6* offset), 0 + 24,1);
     //color wall
     for i in 0..screen_height/2 + screen_height/4{
-        let mut start_x;
+        let start_x;
         if i> screen_height/4{
             start_x = calculate_x(angle , screen_height, vanishing_x - offset , 0, floor_height-i);
         }else{
@@ -462,7 +457,7 @@ fn main() {
     
     let mut rng = rand::rng();
     let tree_count = 200;//rng.random_range(0..12);
-    let mut space = 8;
+    let space = 8;
     let rand_arr: Vec<i32> = (0..tree_count).map(|x| rng.random_range(1..=5)).collect();
     let mut in_seat = false;
     let mut second_diag = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
@@ -479,7 +474,7 @@ fn main() {
     let mut dcb = Character::new("David Berman".to_string(), & mut oth_d, 2);
 
     let mut in_diag = false;
-    let mut seats: Vec<((i32, i32), (i32, i32))> = top_down_view(&mut engine, frame);
+    let seats: Vec<((i32, i32), (i32, i32))> = top_down_view(&mut engine, frame);
 
 
 
@@ -542,7 +537,7 @@ fn main() {
         frame += 1;
         frame = frame % 600;
     }
-    let mut second_diag = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
+    let second_diag = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
     let j = serde_json::to_string(&second_diag);
     
     println!("test print: {}", j.unwrap());

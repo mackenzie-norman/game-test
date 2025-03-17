@@ -2,7 +2,6 @@ use crate::dialouge;
 use dialouge::Dialouge;
 
 use console_engine::ConsoleEngine;
-use std::collections::{btree_map, BTreeMap};
 
 pub struct Character<'a>{
     name:String,

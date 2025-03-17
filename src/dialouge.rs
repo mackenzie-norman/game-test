@@ -1,17 +1,11 @@
 
-use std::clone;
-use std::iter::Enumerate;
 
-use console_engine::crossterm::style;
 use console_engine::pixel;
 use console_engine::rect_style::BorderStyle;
-use console_engine::screen;
 use console_engine::{Color,MouseButton};
 use console_engine::ConsoleEngine;
 use console_engine::KeyCode;
-use serde::{Deserialize, Serialize};
-use serde_json::Result;
-use rand::Rng;
+use serde::Serialize;
 
 pub fn pt_in_box(pt:(i32,i32), boxx: ((i32,i32),(i32,i32))) -> bool{
     let box_x1: i32 = boxx.0.0;
@@ -78,7 +72,7 @@ impl <'a> Dialouge<'a>{
             let mouse_pos = engine.get_mouse_press(MouseButton::Left);
             if let Some(mouse_pos) = mouse_pos {
                 let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
-                if (new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2) {
+                if new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2 {
                     self.is_prompting = false;
                 } 
                 else{
