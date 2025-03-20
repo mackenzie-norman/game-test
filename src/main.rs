@@ -90,7 +90,7 @@ fn rock(engine: &mut ConsoleEngine, frame:i32 , x1: i32,y1:i32,scale: i32, groun
     engine.fill_rect(x1 + (width/2) , y1, x1 +width + (width/2) , ground , pixel::pxl_fg('#', Color::Grey));
 }
 fn moving_background_anim(engine: &mut ConsoleEngine, frame:i32, tree_count: i32 , mut space: i32, rand_arr: &Vec<i32>){
-    let gnd = 52;
+    let gnd = (engine.get_height() - engine.get_height()/6) as i32;
     let heaven_line = gnd -12;
     let draw_sky = false;
     let og_space = space;
@@ -122,7 +122,7 @@ fn moving_background_anim(engine: &mut ConsoleEngine, frame:i32, tree_count: i32
             pl_space -= 40; 
             power_line(engine, frame, pl_space , pl_space + 40 , gnd+14);
     }
-    road(engine, frame, 0, gnd +4,  5,tree_count*(og_space ));
+    //road(engine, frame, 0, gnd +4,  5,tree_count*(og_space ));
 
 
 fn road(engine: &mut ConsoleEngine, frame: i32, x1:i32, y1: i32, width:i32, length:i32 ){
@@ -317,14 +317,11 @@ fn top_down_view(engine: &mut ConsoleEngine, frame:i32,) -> Vec<((i32, i32), (i3
             engine.fill_rect(i+2, car_y1 + 2 + seat_height , i + seat_width +2, car_y1 + 1 +  2* seat_height, seat_char);
             engine.fill_rect(i+2, car_y2 - 1  , i + seat_width +2, car_y2  - seat_height, seat_char);
             engine.fill_rect(i+2, car_y2 - 2 - seat_height , i + seat_width +2, car_y2 - 1 -  2* seat_height, seat_char);
-            seat_boxs.push(((i, car_y1 + 1 ), ( i + seat_width +2 ,car_y1  + seat_height)));
-            seat_boxs.push(((i, car_y1 + 2 + seat_height),(  i + seat_width +3, car_y1 + 1 +  2* seat_height)));
-            seat_boxs.push(((i, car_y2 - 1  ), (i + seat_width +3, car_y2  - seat_height)));
-            seat_boxs.push(((i, car_y2 - 2 - seat_height ),( i + seat_width +3, car_y2 - 1 -  2* seat_height, )));
-            //engine.set_pxl(i, car_y1, window_char);
-            //engine.set_pxl(i, car_y2, window_char);
-            //engine.set_pxl(i+ 1, car_y1, window_char);
-            //engine.set_pxl(i+1, car_y2, window_char);
+            seat_boxs.push(((i, car_y1  ), ( i + seat_width +2 ,car_y1  + 1 + seat_height)));
+            seat_boxs.push(((i, car_y1 + 1 + seat_height),(  i + seat_width +3, car_y1 + 2 +  2* seat_height)));
+            seat_boxs.push(((i,  car_y2  - 1- seat_height  ), (i + seat_width +3, car_y2)));
+            seat_boxs.push(((i, car_y2 - 2 -  2* seat_height),( i + seat_width +3, car_y2  - seat_height  )));
+
 
         }
     }
@@ -361,94 +358,6 @@ fn top_down_view(engine: &mut ConsoleEngine, frame:i32,) -> Vec<((i32, i32), (i3
     seat_boxs
 
 }
-fn fill_parrallegram(engine: &mut ConsoleEngine, frame:i32){
-
-}
-fn calculate_x(x1: i32, y1: i32, x2: i32, y2: i32, y_need_x: i32) -> i32 {
-    if x1 == x2 {
-        panic!("Slope is undefined (vertical line).");
-    }
-
-    let slope = (y2 - y1) as f64 / (x2 - x1) as f64;
-    let x = (y_need_x as f64 /slope) as f64;
-    
-    x.round() as i32 + x1// Round to nearest integer if needed
-}
-fn calculate_y(x1: i32, y1: i32, x2: i32, y2: i32, x_need_y: i32) -> i32 {
-    if x1 == x2 {
-        panic!("Slope is undefined (vertical line).");
-    }
-
-    let slope = (y2 - y1) as f64 / (x2 - x1) as f64;
-    let y = y1 as f64 + slope * (x_need_y - x1) as f64;
-    
-    y.round() as i32 // Round to nearest integer if needed
-}
-fn forward_chair(engine: &mut ConsoleEngine, frame:i32, x:i32,y:i32, scale:i32){
-    let screen_width: i32 =(engine.get_width()) as i32;
-    let screen_height: i32 =(engine.get_height()) as i32;
-    let vanishing_x: i32 = screen_width/2;
-    //let scale = 1;
-    let chair_height = screen_height/12 * scale;
-    let chair_width = screen_width/16 * scale;
-    let seat_char = pixel::pxl_fg('%', Color::AnsiValue(52));
-    let seat_border_char = pixel::pxl_fg('%', Color::AnsiValue(255));
-    engine.fill_circle(x+ chair_width/2, y - chair_height , (chair_width/2).try_into().unwrap(), seat_char);
-    //engine.circle(x+ chair_width/2, y- chair_height , (chair_width/2).try_into().unwrap(), seat_border_char);
-    engine.fill_rect(x, y , x + chair_width, y- chair_height, seat_char);
-
-    let end_y = calculate_y(x, y, vanishing_x, 0, x - chair_width/2 );
-    engine.line(x,y,x  -chair_width/2, end_y, seat_char);
-    let end_y = calculate_y(x + chair_width, y, vanishing_x, 0, x + chair_width/2 );
-    engine.line(x + chair_width,y,x  +chair_width/2, end_y, seat_char);
-    //engine.line(x,y + chair_height,x - chair_width/2, end_y + chair_height, seat_char);
-    //engine.rect(x, y , x + chair_width, y- chair_height, seat_border_char);
-}
-fn forward_view(engine: &mut ConsoleEngine, frame:i32){
-    let window_char = pixel::pxl_fbg('=', Color::AnsiValue(51) , Color::AnsiValue(57));
-    let window_char = pixel::pxl_fg('=', Color::AnsiValue(57));
-    let seat_char = pixel::pxl_fg('%', Color::AnsiValue(58));
-    let floor_char = pixel::pxl_fg('#', Color::AnsiValue(236));
-    let walkway_char = pixel::pxl_fg('#', Color::AnsiValue(238));
-
-    let screen_width: i32 =(engine.get_width()) as i32;
-    let screen_height: i32 =(engine.get_height()) as i32;
-    let vanishing_x: i32 = screen_width/2;
-    let offset = 6;
-    let angle = screen_width/3;
-    let floor_height = screen_height/2;
-    engine.fill_rect(0,0, screen_width, screen_height , floor_char);
-    engine.fill_rect(vanishing_x - offset, screen_height,vanishing_x + offset , 0, walkway_char);
-    for offset in  1..=6{
-        engine.line(angle, screen_height , vanishing_x - offset , 0, walkway_char);
-        engine.line(screen_width - angle, screen_height, vanishing_x +offset, 0, walkway_char);
-
-    }
-    for angle in angle..=screen_width-angle{
-    engine.line(angle, screen_height , vanishing_x  , 0, walkway_char);
-
-    }
-    engine.fill_rect(0, 0, screen_width, floor_height, seat_char);
-    engine.fill_rect(vanishing_x - 2*offset , 0 , vanishing_x + offset *2, floor_height, pixel::pxl_fg('#', Color::Black));
-    //forward_chair(engine, frame, (vanishing_x - 6* offset), 0 + 24,1);
-    //color wall
-    for i in 0..screen_height/2 + screen_height/4{
-        let start_x;
-        if i> screen_height/4{
-            start_x = calculate_x(angle , screen_height, vanishing_x - offset , 0, floor_height-i);
-        }else{
-            start_x = calculate_x(angle , screen_height, vanishing_x - offset , 0, floor_height );
-        }
-        engine.line(0, screen_height/2 + screen_height/4 - i,  start_x, floor_height-i, seat_char);
-        engine.line(calculate_x(angle , screen_height, vanishing_x - offset , 0, floor_height ), floor_height , calculate_x(angle , screen_height, vanishing_x - offset , 0, floor_height ), 0, pixel::pxl_fg('#', Color::Black) );
-        //engine.fill_rect( vanishing_x - 2*offset ,0, calculate_x(angle , screen_height, vanishing_x - offset , 0, screen_height/4 ), floor_height, seat_char);
-    }
-    for i in (floor_height..screen_height).step_by(12){
-        let start_x = calculate_x(angle , screen_height, vanishing_x , 0, i);
-        forward_chair(engine, frame, start_x,  i,2);
-
-    }
-}
 
 
 fn main() {
@@ -474,25 +383,37 @@ fn main() {
     let mut dcb = Character::new("David Berman".to_string(), & mut oth_d, 2);
 
     let mut in_diag = false;
-    let seats: Vec<((i32, i32), (i32, i32))> = top_down_view(&mut engine, frame);
+    let mut seats: Vec<((i32, i32), (i32, i32))> = top_down_view(&mut engine, frame);
+    let mut char_seat_map : Vec<Character> = vec![dick_g,dcb];
+    //eprintln!("test print: {:?}", seats);
 
-
-
-
+    let mut cur_seat:i32 = -1;
     loop {
         engine.wait_frame();
         engine.clear_screen();
 
         // draw a rectangle with an emoji inside
         //engine.rect(0, 0, 5, 4, pixel::pxl('#'));
-        
-        if in_seat{
-            
+        //if were in a seat render it. 
+        if cur_seat != -1{
+            //in_diag = true; 
+            engine.clear_screen();
             moving_background_anim(&mut engine, frame, tree_count, space, &rand_arr);
             train_window_static(&mut engine, 2, false);
+            if cur_seat as usize <= char_seat_map.len() {
+
+                //dick_g.draw_face(&mut engine, frame, 12, 10);
+                in_diag = char_seat_map[cur_seat as usize ].talk_to(&mut engine, frame);
+                if !in_diag{
+                    cur_seat = -1;
+                }
+            }else{
+                let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+                if let Some(mouse_pos) = mouse_pos {
+                    cur_seat = -1;
+                }
+            }
             //in_diag = dick_g.talk_to(&mut engine, frame); 
-            dick_g.draw_face(&mut engine, frame, 12, 10);
-            in_diag = dcb.talk_to(&mut engine, frame);
             //cur_diag = cur_diag.write_prompt(&mut engine,frame, "Dick Gobbla");
             //in_diag = cur_diag.is_active;
             
@@ -500,29 +421,26 @@ fn main() {
         else
         {
 
-            //seats = top_down_view(&mut engine, frame);
-            forward_view(&mut engine, frame);
-
-        }
-        let mouse_pos = engine.get_mouse_press(MouseButton::Left);
-        if let Some(mouse_pos) = mouse_pos {
-            //lets see if we clicked a seat!
-            if !in_diag{
+            seats = top_down_view(&mut engine, frame);
+            //forward_view(&mut engine, frame);
+            let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+            if let Some(mouse_pos) = mouse_pos {
+            
                 let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
-                for sb in &seats{
-                    if pt_in_box(new_mouse_pos, *sb){
-                        println!("WORKING");
-                        in_seat = true;
-                        // !in_seat;
-
+                for sb in seats.iter().enumerate(){
+                    if pt_in_box(new_mouse_pos, *sb.1){
+                        eprintln!("WORKING {}",sb.0);
+                        cur_seat = sb.0 as i32;
+                        frame = 200;
                         break;
                     }
                 }
-                in_seat = !in_seat;
-                frame = 200;
 
             }
+
         }
+
+        
 
         //station_enter_anim(&mut engine, frame);
         //engine.set_pxl(2, 2, pixel::pxl('👍'));
@@ -537,9 +455,10 @@ fn main() {
         frame += 1;
         frame = frame % 600;
     }
+    
     let second_diag = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
     let j = serde_json::to_string(&second_diag);
     
-    println!("test print: {}", j.unwrap());
-    println!("GHELP");
+    eprintln!("test print: {:?}", j.unwrap());
+    
 }
