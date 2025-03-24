@@ -4,12 +4,14 @@ use console_engine::rect_style::BorderStyle;
 use console_engine::{Color, MouseButton};
 use console_engine::ConsoleEngine;
 use console_engine::KeyCode;
-use rand::Rng;
+use figlet_rs::FIGfont;
+use rand::{random, Rng, rngs::StdRng, SeedableRng};
 mod dialouge;
 use dialouge::{Dialouge, pt_in_box};
 mod character;
 use character::Character;
-
+mod pov;
+use pov::{close_eyes, open_eyes, waking_up};
 
 #[allow(dead_code, unused)]
 
@@ -19,13 +21,96 @@ fn bogey(engine: &mut ConsoleEngine, frame:i32, start_val: i32, bottom:i32){
     engine.fill_circle(start_val + frame -17 , bottom, 4, pixel::pxl_fg('@', Color::DarkGrey) );
 
 }
+fn building(engine: &mut ConsoleEngine, frame:i32, ground:i32, x:i32, scale:i32, building_type: i32){
+    match building_type {
+
+       _ => {
+        let grey = pixel::pxl_fg('#', Color::DarkGrey);
+        let window_yellow = pixel::pxl_fg('#', Color::DarkYellow);
+        let mut height :i32= (engine.get_height()/ 4).try_into().unwrap() ;
+        let mut width:i32 = (engine.get_width()/20).try_into().unwrap();
+        height *= scale;
+        width *= scale;
+        engine.fill_rect(x + frame, ground, x +width + frame, ground - height, grey);
+        let window_height = height/8;
+        let window_width = width/4;
+        //debug_engine!(engine, "{}", window_height);
+        for i in (2..height).into_iter().step_by((window_height + 1) as usize){
+            //engine.fill_rect(x + frame, ground - i  , x +width + frame, ground - i   - window_height + (window_height/2), window_yellow);
+            engine.fill_rect(x + frame + window_width/4, ground - i , x +window_width , ground - i   - window_height + (window_height/2), window_yellow);
+            engine.fill_rect(x + frame + window_width  + window_width/2, ground - i , x +window_width * 2, ground - i   - window_height + (window_height/2), window_yellow);
+            engine.fill_rect(x + frame + window_width * 2 + window_width/2, ground - i , x +window_width * 3, ground - i   - window_height + (window_height/2), window_yellow);
+            engine.fill_rect(x + frame + window_width * 3 + window_width/2, ground - i , x +window_width * 4, ground - i   - window_height + (window_height/2), window_yellow);
+
+        }
+       } 
+    }
+}
+fn title(engine: &mut ConsoleEngine, frame:i32){
+    let  width:i32 = (engine.get_width()).try_into().unwrap();
+    let standard_font = FIGfont::standard().unwrap();
+    let figure = standard_font.convert("Why is it so Empty?").unwrap();
+    //assert!(figure.is_some());
+    let print_str = &format!("{}",figure);
+    //engine.print((width/2) - (print_str.len().try_into().unwrap_or(0)),0,&print_str );
+    let text_width: i32  = "Why is it so Empty?".len().try_into().unwrap();
+    let start_x = (width/2) - text_width *3;
+    let start_y = 4;
+    let padding = 0;
+    engine.fill_rect( start_x - padding, start_y - padding , start_x + text_width  + padding, start_y + figure.height as i32 + padding, pixel::pxl_bg(' ', Color::Black));
+    engine.print(start_x,start_y,&print_str );
+    engine.print(width/2 - 12, start_y + 24 + figure.height as i32, "Press Any Button to start");
+}
+fn night_sky(engine: &mut ConsoleEngine, frame:i32, skybox: (i32,i32,i32,i32)){
+    let mut rng = StdRng::seed_from_u64(2);
+    let stars = vec!['x', '.' , '+', 'o'];
+    let star_colors = vec![Color::AnsiValue(241), Color::AnsiValue(248), Color::AnsiValue(245)];
+    for x in skybox.0..skybox.2{
+        for y in skybox.1..skybox.3{
+            //
+            //engine.set_pxl(x + frame, y, pixel::pxl_fg(stars[0], Color::DarkYellow) );
+            if rng.random_bool(1.0/100.0){
+                engine.set_pxl(x + frame, y, pixel::pxl_fg(stars[rng.random_range(0..stars.len() )], star_colors[rng.random_range(0..star_colors.len() )]) );
+            }
+        }
+    }
+
+}
 //use console_engine::{pixel, KeyCode};
-fn station_enter_anim(engine: &mut ConsoleEngine, frame:i32 ){
+fn station_enter_anim(engine: &mut ConsoleEngine, mut frame:i32 ){
+    let frame_max = 200;
+    let wait_time = 30 * 1;
+    let max_height = 100;
+    let mut height: i32 =  (engine.get_height()/2).try_into().unwrap();
+    if frame > frame_max{
+        let diff = frame - frame_max;
+        frame = frame_max;
+        
+        if diff > wait_time{
+            
+            height += (diff - wait_time)/2;
+        }
+        if height   > max_height{
+            height = max_height + 1; 
+        }
+        
+
+    }
     //Locomotive Body
     let end_val = -80;
     let start_val = 60;
-    let height =  20;
+    //let height: i32 =  (engine.get_height()/2).try_into().unwrap();
     let bottom = height + 20;
+    night_sky(engine, 0, (0,0, 400, height - 20));
+    if height   > max_height{
+        height = max_height; 
+        title(engine, frame);
+    }
+    building(engine, 0, height , 120, 1, 1);
+    //building(engine, 0, height , 70, 1, 1);
+    building(engine, 0, height , 70, 2, 1);
+    building(engine, 0, height+4  , 90, 2, 1);
+    building(engine, 0, height + 6 , 140, 2, 1);
     //WHEELS
     bogey(engine, frame, start_val - 17, bottom);
     bogey(engine, frame, end_val + 17, bottom);
@@ -63,6 +148,13 @@ fn station_enter_anim(engine: &mut ConsoleEngine, frame:i32 ){
     engine.rect_border(start_val - 36 + frame, height+ 6, start_val - 26 + frame, bottom  -2, BorderStyle::new_simple());
     engine.set_pxl(start_val - 27 + frame,bottom - 7,pixel::pxl('*'));
     //TRAIN NUMBERS
+    let standard_font = FIGfont::from_file("../slant.flf").unwrap();
+    let basic_font = FIGfont::from_file("../basic.flf").unwrap();
+    let figure = standard_font.convert("30C").unwrap();
+
+    engine.print_fbg(end_val + 3 + frame , bottom - figure.height as i32 - 2, &format!("{}", figure), Color::White, Color::Blue);
+    let figure = basic_font.convert("AMTRAK").unwrap();
+    engine.print(end_val + 20 + frame, height + 3,&format!("{}", figure) );
     //engine.line(start_val - 38 + frame , height + 6, start_val -28 + frame, height + 6, pixel::pxl('#'));
     //engine.line(start_val - 38 + frame , height + 6, start_val -38 + frame, bottom, pixel::pxl('#'));
     //engine.line(start_val - 38 + frame , height + 6, start_val -38 + frame, bottom, pixel::pxl('#'));
@@ -387,6 +479,8 @@ fn main() {
     let mut char_seat_map : Vec<Character> = vec![dick_g,dcb];
     //eprintln!("test print: {:?}", seats);
 
+    
+    let mut waking = true;
     let mut cur_seat:i32 = -1;
     loop {
         engine.wait_frame();
@@ -395,6 +489,7 @@ fn main() {
         // draw a rectangle with an emoji inside
         //engine.rect(0, 0, 5, 4, pixel::pxl('#'));
         //if were in a seat render it. 
+        /*
         if cur_seat != -1{
             //in_diag = true; 
             engine.clear_screen();
@@ -440,12 +535,20 @@ fn main() {
 
         }
 
+         */
         
+        station_enter_anim(&mut engine, frame);
 
-        //station_enter_anim(&mut engine, frame);
+        //moving_background_anim(&mut engine, frame+200, tree_count, space, &rand_arr);
+        //train_window_static(&mut engine, 2, false);
+        //if waking{
+            //waking = waking_up(&mut engine, frame);
+        //}
+        //debug_engine!(engine, "{}", waking);
         //engine.set_pxl(2, 2, pixel::pxl('👍'));
         /* 
         */
+        //station_pov_simple(&mut engine, frame);
         
         if engine.is_key_pressed(KeyCode::Char('q')) {
             break;
@@ -453,7 +556,7 @@ fn main() {
 
         engine.draw();
         frame += 1;
-        frame = frame % 600;
+        //frame = frame % 600;
     }
     
     let second_diag = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());

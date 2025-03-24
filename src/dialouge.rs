@@ -6,7 +6,31 @@ use console_engine::{Color,MouseButton};
 use console_engine::ConsoleEngine;
 use console_engine::KeyCode;
 use serde::Serialize;
+pub fn display_prompt(engine: &mut ConsoleEngine, current_char:i32, prompt:String, name: String){
+    let max_chars = 1024;
+    let bg_char = pixel::pxl_bg(' ', Color::Black);
+    let screen_width: i32 =(engine.get_width()) as i32;
+    let screen_height: i32 =(engine.get_height()) as i32;
 
+    let box_x1: i32 = screen_width/6;
+    let box_x2: i32 = screen_width - box_x1;
+     
+    let box_y1 = screen_height/3 + screen_height/3 + screen_height/24;// + screen_height/36;
+    let box_y2 = screen_height - screen_height/6 + screen_height/24;
+        //TODO chunk chars to pages 
+    engine.fill_rect(box_x1, box_y1, box_x2, box_y2, bg_char);
+    engine.rect_border(box_x1, box_y1, box_x2, box_y2, BorderStyle::new_heavy());
+    let print_str: String = prompt.chars().take(current_char.try_into().unwrap()).collect();
+    engine.print(box_x1 + 1, box_y1 + 1,&print_str );
+    if current_char % 3 != 0 && current_char > prompt.len().try_into().unwrap() {
+        engine.print(box_x2 -1, box_y2 -1, "V");
+    }
+
+}
+pub fn display_choices(engine: &mut ConsoleEngine, choices: Vec<&str>) -> i32{
+    
+    1
+}
 pub fn pt_in_box(pt:(i32,i32), boxx: ((i32,i32),(i32,i32))) -> bool{
     let box_x1: i32 = boxx.0.0;
     let box_x2: i32 = boxx.1.0;
