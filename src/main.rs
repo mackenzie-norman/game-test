@@ -47,13 +47,16 @@ fn building(engine: &mut ConsoleEngine, frame:i32, ground:i32, x:i32, scale:i32,
     }
 }
 fn title(engine: &mut ConsoleEngine, frame:i32){
+    let orig_message = "Why is it so Empty?";
+    let hold_message: String = orig_message.chars().take(frame as usize).collect();
+    let my_message = &hold_message;
     let  width:i32 = (engine.get_width()).try_into().unwrap();
     let standard_font = FIGfont::standard().unwrap();
-    let figure = standard_font.convert("Why is it so Empty?").unwrap();
+    let figure = standard_font.convert(my_message).unwrap();
     //assert!(figure.is_some());
     let print_str = &format!("{}",figure);
     //engine.print((width/2) - (print_str.len().try_into().unwrap_or(0)),0,&print_str );
-    let text_width: i32  = "Why is it so Empty?".len().try_into().unwrap();
+    let text_width: i32  = my_message.len().try_into().unwrap();
     let start_x = (width/2) - text_width *3;
     let start_y = 4;
     let padding = 0;
@@ -82,6 +85,7 @@ fn station_enter_anim(engine: &mut ConsoleEngine, mut frame:i32 ){
     let wait_time = 30 * 1;
     let max_height = 100;
     let mut height: i32 =  (engine.get_height()/2).try_into().unwrap();
+    let mut chars = 0;
     if frame > frame_max{
         let diff = frame - frame_max;
         frame = frame_max;
@@ -91,6 +95,7 @@ fn station_enter_anim(engine: &mut ConsoleEngine, mut frame:i32 ){
             height += (diff - wait_time)/2;
         }
         if height   > max_height{
+            chars = height - max_height;
             height = max_height + 1; 
         }
         
@@ -104,7 +109,7 @@ fn station_enter_anim(engine: &mut ConsoleEngine, mut frame:i32 ){
     night_sky(engine, 0, (0,0, 400, height - 20));
     if height   > max_height{
         height = max_height; 
-        title(engine, frame);
+        title(engine, chars);
     }
     building(engine, 0, height , 120, 1, 1);
     //building(engine, 0, height , 70, 1, 1);
