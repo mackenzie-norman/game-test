@@ -1,7 +1,7 @@
 
 use console_engine::pixel::{self, Pixel};
 use console_engine::rect_style::BorderStyle;
-use console_engine::{Color, MouseButton};
+use console_engine::{screen, Color, MouseButton};
 use console_engine::ConsoleEngine;
 use console_engine::KeyCode;
 use figlet_rs::FIGfont;
@@ -14,7 +14,8 @@ mod pov;
 use pov::{close_eyes, open_eyes, waking_up};
 mod smart_drawing;
 use smart_drawing::{line, fill_triangle};
-
+mod game;
+use game::ticket_screen;
 #[allow(dead_code, unused)]
 
 fn bogey(engine: &mut ConsoleEngine, frame:i32, start_val: i32, bottom:i32){
@@ -67,7 +68,7 @@ fn building(engine: &mut ConsoleEngine, frame:i32, ground:i32, x:i32, scale:i32,
     }
 }
 fn title(engine: &mut ConsoleEngine, frame:i32){
-    let orig_message = "Why is it so Empty?";
+    let orig_message = "I just didn't think it would be so empty.";
     let hold_message: String = orig_message.chars().take(frame as usize).collect();
     let my_message = &hold_message;
     let  width:i32 = (engine.get_width()).try_into().unwrap();
@@ -115,7 +116,7 @@ fn draw_platform(engine: &mut ConsoleEngine, frame:i32, height:i32){
         engine.line(i, height, i, screen_height, split_char);
     }
 }
-fn light_pole(engine: &mut ConsoleEngine, frame:i32, x:i32, y:i32){
+fn light_pole(engine: &mut ConsoleEngine, frame:i32, x:i32, y:i32, flicker: bool){
     let platform_color = Color::AnsiValue(236);
     let pole_char = pixel::pxl_fg('#', platform_color);
     let screen_height = engine.get_height() as i32;
@@ -137,21 +138,24 @@ fn light_pole(engine: &mut ConsoleEngine, frame:i32, x:i32, y:i32){
     for c in curve_gen(x- 10, x + 2 , y-height , -3){
         engine.set_pxl(c.0, c.1,pole_char);
     }
-    line(engine,x -24,y , x -12, y -height, light_char);
-    line(engine,x ,y , x -10, y -height, light_char);
-    fill_triangle(engine,x -24, y, x, y, x-11, y- height, light_char);
-    engine.fill_circle(x - 11, y-height, 1, pole_char);
+    if flicker{
+        line(engine,x -24,y , x -12, y -height, light_char);
+        line(engine,x ,y , x -10, y -height, light_char);
+        fill_triangle(engine,x -24, y, x, y, x-11, y- height, light_char);
+        engine.fill_circle(x - 11, y-height, 1, pole_char);
     
-    for c in curve_gen(x- 24, x  , y , 1){
-        let my_pxl =engine.get_pxl(c.0, c.1);
-        //debug_engine!(engine, "{:?}", my_pxl.bg);
-        if my_pxl.is_ok(){
-            engine.set_pxl(c.0, c.1,pixel::pxl_fbg('*', light_color, my_pxl.unwrap().bg));
+        for c in curve_gen(x- 24, x  , y , 1){
+            let my_pxl =engine.get_pxl(c.0, c.1);
+            //debug_engine!(engine, "{:?}", my_pxl.bg);
+            if my_pxl.is_ok(){
+                engine.set_pxl(c.0, c.1,pixel::pxl_fbg('*', light_color, my_pxl.unwrap().bg));
 
-        }else{
+            }else{
 
-            engine.set_pxl(c.0, c.1,light_char);
+                engine.set_pxl(c.0, c.1,light_char);
+            }
         }
+
     }
     
 }
@@ -166,8 +170,119 @@ fn station_sign(engine: &mut ConsoleEngine, frame:i32, x:i32, y:i32){
     engine.fill_rect(x +width -2, y , x + width, y - height, pole_char);
 
     engine.fill_rect(x - 1, y - height/2, x + width + 1, y - height, pole_char);
-    engine.print(x + 4, y - height + 1, "Tukwilla");
-    engine.print(x + 1, y - height + 3, "Amtrak Station");
+    engine.print_fbg(x + 4, y - height + 1, "Tukwilla", Color::DarkGrey, Color::Black);
+    engine.print_fbg(x + 1, y - height + 3, "Amtrak Station", Color::DarkGrey, Color::Black);
+}
+fn bench(engine: &mut ConsoleEngine, frame:i32, x:i32, y:i32){
+
+    let back_color = Color::AnsiValue(235);
+    let platform_color = Color::AnsiValue(232);
+    let pole_char = pixel::pxl_fg('#', platform_color);
+    let back_char = pixel::pxl_fg('=', back_color);
+    let screen_height = engine.get_height() as i32;
+    let screen_width = engine.get_width() as i32;
+    let height = screen_height/18;
+    let width = screen_width/9;
+    let mut offset = 0;
+    for i in y -height..y{
+
+        line(engine, x - offset, i , x + width - offset, i, back_char);
+        offset +=1
+    }
+    //offset = 0;
+    //for i in y-height *2..y-height{
+
+        //engine.line( x - offset, i , x + width - offset, i, back_char);
+    //}
+    
+    //line(engine, 
+    //line(engine, 
+}
+fn car_anim(engine: &mut ConsoleEngine, frame:i32, bottom:i32){
+    let  height: i32 =  (engine.get_height()/2).try_into().unwrap();
+    
+    let amtrak_dark_blue = Color::AnsiValue(17);
+    let amtrak_light_blue = Color::AnsiValue(27);
+    let amtrak_grey = Color::AnsiValue(242);
+
+    let train_blue_pixel = pixel::pxl_fbg('#', amtrak_dark_blue, amtrak_dark_blue);
+    let train_grey_pixel = pixel::pxl_fbg('#', amtrak_grey, amtrak_grey);
+    let start_val = 180;
+    let end_val = start_val - engine.get_width() as i32 /2;
+    
+    for fill_line in 2..10{
+        engine.line(end_val + frame , bottom-fill_line, start_val  -36 + frame, bottom-fill_line, train_blue_pixel);
+        engine.line(start_val+ frame , bottom-fill_line, start_val  -36 + frame, bottom-fill_line, train_blue_pixel);
+
+    }
+    for fill_line in 10..19{
+        engine.line(end_val  + frame , bottom-fill_line, start_val  -5 + frame, bottom-fill_line, train_grey_pixel);
+        //engine.line(start_val+ frame , bottom-fill_line, start_val  -25 + frame, bottom-fill_line, train_grey_pixel);
+
+    }
+    //engine.fill_triangle(start_val - 5+ frame, bottom - 10 , start_val -5  +frame, bottom - 18,  start_val + frame, bottom -10, train_grey_pixel);
+
+
+    engine.line(end_val + frame , bottom -1, start_val + frame, bottom -1, pixel::pxl_fg('#', Color::Grey));
+    engine.line(end_val + frame , bottom, start_val + frame, bottom, pixel::pxl_fg('#', Color::Grey));
+    
+    //Back
+    //engine.line(end_val + frame , height, end_val + frame, bottom, pixel::pxl('#'));
+    // Door
+    engine.rect_border(start_val - 36 + frame, bottom + 12, start_val - 26 + frame, bottom  -2, BorderStyle::new_simple());
+    engine.set_pxl(start_val - 27 + frame,bottom - 7,pixel::pxl('*'));
+
+    //TRAIN NUMBERS
+    let standard_font = FIGfont::from_file("../slant.flf").unwrap();
+    let basic_font = FIGfont::from_file("../basic.flf").unwrap();
+    let figure = standard_font.convert("30C").unwrap();
+
+    engine.print_fbg(end_val + 3 + frame , bottom - figure.height as i32 - 2, &format!("{}", figure).trim_end(), Color::AnsiValue(246), amtrak_dark_blue);
+    //let figure = basic_font.convert("AMTRAK").unwrap();
+    //engine.print_fbg(end_val + 30 + frame, bottom - 15,&format!("{}", figure).trim_end(), Color::AnsiValue(246), amtrak_grey );
+}
+fn locomotive_anim(engine: &mut ConsoleEngine, frame:i32, bottom:i32){
+    let  height: i32 =  (engine.get_height()/2).try_into().unwrap();
+    
+    let amtrak_dark_blue = Color::AnsiValue(17);
+    let amtrak_light_blue = Color::AnsiValue(27);
+    let amtrak_grey = Color::AnsiValue(242);
+
+    let train_blue_pixel = pixel::pxl_fbg('#', amtrak_dark_blue, amtrak_dark_blue);
+    let train_grey_pixel = pixel::pxl_fbg('#', amtrak_grey, amtrak_grey);
+    let start_val = 180;
+    let end_val = start_val - engine.get_width() as i32 /2;
+    
+    for fill_line in 2..10{
+        engine.line(end_val + frame , bottom-fill_line, start_val  -36 + frame, bottom-fill_line, train_blue_pixel);
+        engine.line(start_val+ frame , bottom-fill_line, start_val  -36 + frame, bottom-fill_line, train_blue_pixel);
+
+    }
+    for fill_line in 10..19{
+        engine.line(end_val  + frame , bottom-fill_line, start_val  -5 + frame, bottom-fill_line, train_grey_pixel);
+        //engine.line(start_val+ frame , bottom-fill_line, start_val  -25 + frame, bottom-fill_line, train_grey_pixel);
+
+    }
+    engine.fill_triangle(start_val - 5+ frame, bottom - 10 , start_val -5  +frame, bottom - 18,  start_val + frame, bottom -10, train_grey_pixel);
+
+
+    engine.line(end_val + frame , bottom -1, start_val + frame, bottom -1, pixel::pxl_fg('#', Color::Grey));
+    engine.line(end_val + frame , bottom, start_val + frame, bottom, pixel::pxl_fg('#', Color::Grey));
+    
+    //Back
+    //engine.line(end_val + frame , height, end_val + frame, bottom, pixel::pxl('#'));
+    // Door
+    engine.rect_border(start_val - 36 + frame, height+ 6, start_val - 26 + frame, bottom  -2, BorderStyle::new_simple());
+    engine.set_pxl(start_val - 27 + frame,bottom - 7,pixel::pxl('*'));
+
+    //TRAIN NUMBERS
+    let standard_font = FIGfont::from_file("../slant.flf").unwrap();
+    let basic_font = FIGfont::from_file("../basic.flf").unwrap();
+    let figure = standard_font.convert("30C").unwrap();
+
+    engine.print_fbg(end_val + 3 + frame , bottom - figure.height as i32 - 2, &format!("{}", figure).trim_end(), Color::AnsiValue(246), amtrak_dark_blue);
+    let figure = basic_font.convert("AMTRAK").unwrap();
+    engine.print_fbg(end_val + 30 + frame, bottom - 15,&format!("{}", figure).trim_end(), Color::AnsiValue(246), amtrak_grey );
 }
 //use console_engine::{pixel, KeyCode};
 fn station_enter_anim(engine: &mut ConsoleEngine, mut frame:i32 ){
@@ -176,9 +291,9 @@ fn station_enter_anim(engine: &mut ConsoleEngine, mut frame:i32 ){
     let max_height = 90;
     let mut height: i32 =  (engine.get_height()/2).try_into().unwrap();
     let mut chars = 0;
-    let amtrak_dark_blue = Color::AnsiValue(19);
+    let amtrak_dark_blue = Color::AnsiValue(17);
     let amtrak_light_blue = Color::AnsiValue(27);
-    let amtrak_grey = Color::AnsiValue(66);
+    let amtrak_grey = Color::AnsiValue(242);
 
     let train_blue_pixel = pixel::pxl_fbg('#', amtrak_dark_blue, amtrak_dark_blue);
     let train_grey_pixel = pixel::pxl_fbg('#', amtrak_grey, amtrak_grey);
@@ -198,70 +313,49 @@ fn station_enter_anim(engine: &mut ConsoleEngine, mut frame:i32 ){
 
     }
     //Locomotive Body
-    let end_val = -80;
-    let start_val = 60;
+    let start_val = 180;
+    let end_val = start_val - engine.get_width() as i32 /2;
     //let height: i32 =  (engine.get_height()/2).try_into().unwrap();
     let bottom = height + 20;
-    night_sky(engine, 0, (0,0, 400, height - 20), 0.001);
+    night_sky(engine, 0, (0,0, 400, height - 20), 0.005);
     if height   > max_height{
         height = max_height; 
         title(engine, chars);
     }
-    building(engine, 0, height , 120, 1, 1);
-    building(engine, 0, height , 70, 1, 0);
-    //building(engine, 0, height , 70, 2, 1);
-    building(engine, 0, height+4  , 90, 2, 1);
-    building(engine, 0, height + 6 , 140, 2, 0);
-    //WHEELS
-    bogey(engine, frame, start_val - 17, bottom);
-    bogey(engine, frame, end_val + 17, bottom);
-    //Train
-    engine.line(end_val + frame , height, bottom + frame, height, train_blue_pixel);
-    engine.line(end_val + frame , height + 1, bottom + frame + 1, height +1, train_blue_pixel);
-    engine.line(end_val + frame , height + 2, bottom + frame + 2, height +2, train_blue_pixel);
 
-    engine.line(bottom + frame , height, start_val + frame, height + 10, pixel::pxl_fg('#', Color::DarkRed));
-    engine.line(bottom + frame , height +1, start_val + frame - 1, height + 9, pixel::pxl_fg('#', Color::DarkRed));
-
-    engine.line(start_val + frame , height + 10, start_val + frame, bottom, pixel::pxl('#'));
-    //bottom
-    for fill_line in 2..10{
-        engine.line(end_val + frame , bottom-fill_line, start_val  -36 + frame, bottom-fill_line, train_blue_pixel);
-        engine.line(start_val+ frame , bottom-fill_line, start_val  -36 + frame, bottom-fill_line, train_blue_pixel);
-
-    }
-    for fill_line in 10..19{
-        engine.line(end_val  + frame , bottom-fill_line, start_val  -5 + frame, bottom-fill_line, train_grey_pixel);
-        //engine.line(start_val+ frame , bottom-fill_line, start_val  -25 + frame, bottom-fill_line, train_grey_pixel);
-
-    }
-    engine.fill_triangle(start_val - 5+ frame, bottom - 10 , start_val -5  +frame, bottom - 18,  start_val + frame, bottom -10, train_grey_pixel);
-
-
-
-    engine.line(end_val + frame , bottom -1, start_val + frame, bottom -1, pixel::pxl_fg('#', Color::Grey));
-    engine.line(end_val + frame , bottom, start_val + frame, bottom, pixel::pxl_fg('#', Color::Grey));
     
-    //Back
-    engine.line(end_val + frame , height, end_val + frame, bottom, pixel::pxl('#'));
-    // Door
-    engine.rect_border(start_val - 36 + frame, height+ 6, start_val - 26 + frame, bottom  -2, BorderStyle::new_simple());
-    engine.set_pxl(start_val - 27 + frame,bottom - 7,pixel::pxl('*'));
+    building(engine, 0, height  - 4, 120, 1, 1);
+    building(engine, 0, height -1 , 70, 1, 0);
+    building(engine, 0, height   -3, 90, 1, 0);
+    building(engine, 0, height  -1, 140, 1, 0);
+    building(engine, 0, height  -2, 100, 1, 0);
+    //WHEELS
+    //THE TREE LINE
+    let scale_arr = [1,2,2,3,2,1];
+    for i in (0..engine.get_width() as i32).into_iter().step_by(5){
 
-    //TRAIN NUMBERS
-    let standard_font = FIGfont::from_file("../slant.flf").unwrap();
-    let basic_font = FIGfont::from_file("../basic.flf").unwrap();
-    let figure = standard_font.convert("30C").unwrap();
+        tree(engine, frame,  i , height -2 - i%2,  scale_arr[(i % scale_arr.len() as i32) as usize] , height - i%2);
+    }
+    //tree(engine, frame, 33, height -2, 2, height);
 
-    engine.print_fbg(end_val + 3 + frame , bottom - figure.height as i32 - 2, &format!("{}", figure).trim_end(), Color::White, amtrak_dark_blue);
-    let figure = basic_font.convert("AMTRAK").unwrap();
-    engine.print_fbg(end_val + 20 + frame, height + 3,&format!("{}", figure).trim_end(), Color::White, amtrak_grey );
+     
+    
+    /*
+    */ 
+
+    draw_platform(engine, frame, bottom - 15);
+    engine.fill_rect(0, bottom - 10, engine.get_width() as i32, bottom -1, pixel::pxl_fg('+', Color::Black));
+    locomotive_anim(engine, frame, bottom );
+    car_anim(engine, frame - 140, bottom);
+    car_anim(engine, frame - 280, bottom);
     draw_platform(engine, frame, bottom - 1);
     //light_pole(engine, frame, 260, bottom + 6);
-    light_pole(engine, frame, 220, bottom + 6);
+    light_pole(engine, frame, 220, bottom + 6, frame % 37 != 0 && frame % 41 != 0);
     //light_pole(engine, frame, 180, bottom + 6);
-    light_pole(engine, frame, 70, bottom + 6);
+    light_pole(engine, frame, 70, bottom + 6, true);
     station_sign(engine, frame, 45, bottom + 8);
+    bench(engine, frame, 120, bottom + 8);
+    //debug_engine!(engine, "{}", engine.get_width());
     
 }
 fn tree(engine: &mut ConsoleEngine, frame:i32 , x1: i32,y1:i32,scale: i32, ground: i32){
@@ -565,89 +659,65 @@ fn main() {
     let space = 8;
     let rand_arr: Vec<i32> = (0..tree_count).map(|x| rng.random_range(1..=5)).collect();
     let mut in_seat = false;
-    let mut second_diag = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
+    //Mom - I am sorry about the curse words
+    let mut first_diag = Dialouge::new(vec!["Fuck. I'm gonna have to try and catch a train back", "It's okay. I'll get off here. I don't really have much to do anyway"], "Tacoma was a while ago. I think this is Tukwilla - shit - or maybe Renton, but honestly I'm not sure. ".to_string());
     //let mut insanity = binding.clone();
     //binding.child_diags.push(& mut insanity);
 
-    let mut first_diag = Dialouge::new( vec!["Fuck off , Dick", "Dick Gobbla? I hardly know er"],
-     "Hey! Dick Gobbla here, how the hell are ya!".to_string());
+    let mut second_diag = Dialouge::new( vec!["I'll take a look. Thanks, again"],
+     "You might be able to get a bus too. I had to get one here once.".to_string());
     //let mut cur_diag = & mut first_diag;
     
-    let mut dick_g = Character::new("Dick Gobbla".to_string(), &mut first_diag, 1);
+    let mut dick_g = Character::new("????".to_string(), &mut first_diag, 1);
     dick_g.add_dialouge(&mut second_diag);
     let mut oth_d = Dialouge::new(vec![], "To the days beyond this one which are still perfect.\n\nCome On.".to_string());
     let mut dcb = Character::new("David Berman".to_string(), & mut oth_d, 2);
+    let mut tut_diag =  Dialouge::new(vec!["Shit. Did I miss the Tacoma stop?"], "...".to_string() );
+    let mut you = Character::new("You".to_string(), &mut tut_diag , 1);
 
     let mut in_diag = false;
     let mut seats: Vec<((i32, i32), (i32, i32))> = top_down_view(&mut engine, frame);
-    let mut char_seat_map : Vec<Character> = vec![dick_g,dcb];
+    //let mut char_seat_map : Vec<Character> = vec![dick_g,dcb];
     //eprintln!("test print: {:?}", seats);
 
     
     let mut waking = true;
+    //let mut waking = false;
     let mut cur_seat:i32 = -1;
+    let mut in_second_diag = true;
     loop {
         engine.wait_frame();
         engine.clear_screen();
 
-        // draw a rectangle with an emoji inside
-        //engine.rect(0, 0, 5, 4, pixel::pxl('#'));
-        //if were in a seat render it. 
-        /*
-        if cur_seat != -1{
-            //in_diag = true; 
-            engine.clear_screen();
-            moving_background_anim(&mut engine, frame, tree_count, space, &rand_arr);
-            train_window_static(&mut engine, 2, false);
-            if cur_seat as usize <= char_seat_map.len() {
-
-                //dick_g.draw_face(&mut engine, frame, 12, 10);
-                in_diag = char_seat_map[cur_seat as usize ].talk_to(&mut engine, frame);
-                if !in_diag{
-                    cur_seat = -1;
-                }
-            }else{
-                let mouse_pos = engine.get_mouse_press(MouseButton::Left);
-                if let Some(mouse_pos) = mouse_pos {
-                    cur_seat = -1;
-                }
-            }
-            //in_diag = dick_g.talk_to(&mut engine, frame); 
-            //cur_diag = cur_diag.write_prompt(&mut engine,frame, "Dick Gobbla");
-            //in_diag = cur_diag.is_active;
-            
-        }
-        else
-        {
-
-            seats = top_down_view(&mut engine, frame);
-            //forward_view(&mut engine, frame);
-            let mouse_pos = engine.get_mouse_press(MouseButton::Left);
-            if let Some(mouse_pos) = mouse_pos {
-            
-                let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
-                for sb in seats.iter().enumerate(){
-                    if pt_in_box(new_mouse_pos, *sb.1){
-                        eprintln!("WORKING {}",sb.0);
-                        cur_seat = sb.0 as i32;
-                        frame = 200;
-                        break;
-                    }
-                }
-
-            }
-
-        }
-
-         */
         
-        station_enter_anim(&mut engine, frame);
 
-        //moving_background_anim(&mut engine, frame+200, tree_count, space, &rand_arr);
-        //train_window_static(&mut engine, 2, false);
-        //if waking{
-            //waking = waking_up(&mut engine, frame);
-        //}
+        if waking{
+            moving_background_anim(&mut engine, frame  +200, tree_count, space, &rand_arr);
+            train_window_static(&mut engine, 2, false);
+            waking = waking_up(&mut engine, frame);
+            if waking == false{
+                in_diag = true;
+            }
+        }else if in_diag{
+
+            moving_background_anim(&mut engine, frame/2+200, tree_count, space, &rand_arr);
+            train_window_static(&mut engine, 2, false);
+            in_diag = you.talk_to(&mut engine, frame);
+        }else if in_second_diag{
+            moving_background_anim(&mut engine, frame/4+200, tree_count, space, &rand_arr);
+            train_window_static(&mut engine, 2, false);
+            in_second_diag = dick_g.talk_to(&mut engine, frame);
+            if in_second_diag == false{
+                frame = 10;
+            }
+
+        }else{
+            station_enter_anim(&mut engine, frame);
+        if engine.is_key_pressed(KeyCode::Char('q')) {
+            break;
+        }
+
+        }
         //debug_engine!(engine, "{}", waking);
         //engine.set_pxl(2, 2, pixel::pxl('👍'));
         /* 
@@ -662,6 +732,8 @@ fn main() {
         frame += 1;
         //frame = frame % 600;
     }
+    frame = 0;
+    ticket_screen(&mut engine, frame);
     
     let second_diag = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
     let j = serde_json::to_string(&second_diag);

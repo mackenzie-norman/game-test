@@ -130,7 +130,7 @@ pub fn station_pov_simple(engine: &mut ConsoleEngine, frame:i32){
 pub fn open_eyes(engine: &mut ConsoleEngine, frame:i32) -> bool{
     let eye_speed = 60; // really this is how many frames this takes
     let frame = frame /2;
-    let closed_char = pixel::pxl_bg(' ', Color::DarkGrey);
+    let closed_char = pixel::pxl_bg(' ', Color::AnsiValue(232));
     let screen_width: i32 =(engine.get_width()) as i32;
     let screen_height: i32 =(engine.get_height()) as i32;
     let start = screen_height/2;
@@ -144,7 +144,7 @@ pub fn open_eyes(engine: &mut ConsoleEngine, frame:i32) -> bool{
 pub fn close_eyes(engine: &mut ConsoleEngine, frame:i32) -> bool{
     let eye_speed = 60; // really this is how many frames this takes
     let frame = frame /2;
-    let closed_char = pixel::pxl_bg(' ', Color::DarkGrey);
+    let closed_char = pixel::pxl_bg(' ', Color::AnsiValue(232));
     let screen_width: i32 =(engine.get_width()) as i32;
     let screen_height: i32 =(engine.get_height()) as i32;
     //let start = screen_height/2;
