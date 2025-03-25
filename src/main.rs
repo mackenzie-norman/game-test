@@ -85,7 +85,7 @@ fn title(engine: &mut ConsoleEngine, frame:i32){
     engine.print(start_x,start_y,&print_str );
     if frame > orig_message.len() as i32 && frame %4 != 0{
 
-        engine.print(width/2 - 12, start_y + 24 + figure.height as i32, "Press Any Button to start");
+        engine.print(width/2 - 12, start_y + 24 + figure.height as i32, "Press Space to start");
     }
 }
 fn night_sky(engine: &mut ConsoleEngine, frame:i32, skybox: (i32,i32,i32,i32), density: f64){
@@ -207,6 +207,7 @@ fn car_anim(engine: &mut ConsoleEngine, frame:i32, bottom:i32){
 
     let train_blue_pixel = pixel::pxl_fbg('#', amtrak_dark_blue, amtrak_dark_blue);
     let train_grey_pixel = pixel::pxl_fbg('#', amtrak_grey, amtrak_grey);
+    let train_window_pixel = pixel::pxl_fbg('#', Color::Black, Color::AnsiValue(236));
     let start_val = 180;
     let end_val = start_val - engine.get_width() as i32 /2;
     
@@ -220,6 +221,13 @@ fn car_anim(engine: &mut ConsoleEngine, frame:i32, bottom:i32){
         //engine.line(start_val+ frame , bottom-fill_line, start_val  -25 + frame, bottom-fill_line, train_grey_pixel);
 
     }
+    let window_width = 8;
+    for x in (end_val + 4.. start_val - 10).into_iter().step_by(12){
+        if x < start_val - 40 || x > start_val - 20{
+
+            engine.fill_rect(x + frame, bottom - 11 ,x + window_width + frame, bottom-17 , train_window_pixel);
+        }
+    }
     //engine.fill_triangle(start_val - 5+ frame, bottom - 10 , start_val -5  +frame, bottom - 18,  start_val + frame, bottom -10, train_grey_pixel);
 
 
@@ -229,7 +237,8 @@ fn car_anim(engine: &mut ConsoleEngine, frame:i32, bottom:i32){
     //Back
     //engine.line(end_val + frame , height, end_val + frame, bottom, pixel::pxl('#'));
     // Door
-    engine.rect_border(start_val - 36 + frame, bottom + 12, start_val - 26 + frame, bottom  -2, BorderStyle::new_simple());
+    engine.fill_rect(start_val - 34 + frame, bottom - 14, start_val - 24 + frame, bottom  -3, train_grey_pixel);
+    engine.rect(start_val - 34 + frame, bottom - 14, start_val - 24 + frame, bottom  -3, train_window_pixel);
     engine.set_pxl(start_val - 27 + frame,bottom - 7,pixel::pxl('*'));
 
     //TRAIN NUMBERS
@@ -713,7 +722,8 @@ fn main() {
 
         }else{
             station_enter_anim(&mut engine, frame);
-        if engine.is_key_pressed(KeyCode::Char('q')) {
+        if engine.is_key_pressed(KeyCode::Char(' ')) {
+
             break;
         }
 
@@ -722,11 +732,12 @@ fn main() {
         //engine.set_pxl(2, 2, pixel::pxl('👍'));
         /* 
         */
-        //station_pov_simple(&mut engine, frame);
-        
-        if engine.is_key_pressed(KeyCode::Char('q')) {
+                //station_pov_simple(&mut engine, frame);
+        if engine.is_key_pressed(KeyCode::Esc) {
+
             break;
         }
+        
 
         engine.draw();
         frame += 1;
