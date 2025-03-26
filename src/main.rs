@@ -15,7 +15,7 @@ use pov::{close_eyes, open_eyes, waking_up};
 mod smart_drawing;
 use smart_drawing::{line, fill_triangle};
 mod game;
-use game::ticket_screen;
+use game::{ticket_screen, Game};
 #[allow(dead_code, unused)]
 
 fn bogey(engine: &mut ConsoleEngine, frame:i32, start_val: i32, bottom:i32){
@@ -658,9 +658,7 @@ fn top_down_view(engine: &mut ConsoleEngine, frame:i32,) -> Vec<((i32, i32), (i3
 
 }
 
-
-fn main() {
-    let mut engine = console_engine::ConsoleEngine::init_fill(20).unwrap();
+fn intro(engine: &mut ConsoleEngine) -> Game{
     let mut frame = 0;
     
     let mut rng = rand::rng();
@@ -679,20 +677,16 @@ fn main() {
     
     let mut dick_g = Character::new("????".to_string(), &mut first_diag, 1);
     dick_g.add_dialouge(&mut second_diag);
-    let mut oth_d = Dialouge::new(vec![], "To the days beyond this one which are still perfect.\n\nCome On.".to_string());
-    let mut dcb = Character::new("David Berman".to_string(), & mut oth_d, 2);
+    
     let mut tut_diag =  Dialouge::new(vec!["Shit. Did I miss the Tacoma stop?"], "...".to_string() );
     let mut you = Character::new("You".to_string(), &mut tut_diag , 1);
 
     let mut in_diag = false;
-    let mut seats: Vec<((i32, i32), (i32, i32))> = top_down_view(&mut engine, frame);
-    //let mut char_seat_map : Vec<Character> = vec![dick_g,dcb];
-    //eprintln!("test print: {:?}", seats);
+    
+
+    let mut waking = true;
 
     
-    let mut waking = true;
-    //let mut waking = false;
-    let mut cur_seat:i32 = -1;
     let mut in_second_diag = true;/**/
     loop {
         engine.wait_frame();
@@ -701,27 +695,27 @@ fn main() {
         
 
         if waking{
-            moving_background_anim(&mut engine, frame  +200, tree_count, space, &rand_arr);
-            train_window_static(&mut engine, 2, false);
-            waking = waking_up(&mut engine, frame);
+            moving_background_anim(engine, frame  +200, tree_count, space, &rand_arr);
+            train_window_static(engine, 2, false);
+            waking = waking_up(engine, frame);
             if waking == false{
                 in_diag = true;
             }
         }else if in_diag{
 
-            moving_background_anim(&mut engine, frame/2+200, tree_count, space, &rand_arr);
-            train_window_static(&mut engine, 2, false);
-            in_diag = you.talk_to(&mut engine, frame);
+            moving_background_anim(engine, frame/2+200, tree_count, space, &rand_arr);
+            train_window_static(engine, 2, false);
+            in_diag = you.talk_to(engine, frame);
         }else if in_second_diag{
-            moving_background_anim(&mut engine, frame/4+200, tree_count, space, &rand_arr);
-            train_window_static(&mut engine, 2, false);
-            in_second_diag = dick_g.talk_to(&mut engine, frame);
+            moving_background_anim(engine, frame/4+200, tree_count, space, &rand_arr);
+            train_window_static(engine, 2, false);
+            in_second_diag = dick_g.talk_to(engine, frame);
             if in_second_diag == false{
                 frame = 10;
             }
 
         }else{
-            station_enter_anim(&mut engine, frame);
+            station_enter_anim(engine, frame);
         if engine.is_key_pressed(KeyCode::Char(' ')) {
 
             break;
@@ -732,7 +726,7 @@ fn main() {
         //engine.set_pxl(2, 2, pixel::pxl('👍'));
          
         
-                //station_pov_simple(&mut engine, frame);
+                //station_pov_simple(engine, frame);
         if engine.is_key_pressed(KeyCode::Esc) {
 
             break;
@@ -744,11 +738,12 @@ fn main() {
         //frame = frame % 600;
     }
     frame = 0;
-    ticket_screen(&mut engine, frame);
+    ticket_screen( engine, frame)
+}
+fn main() {
+    let mut engine = console_engine::ConsoleEngine::init_fill(20).unwrap();
+    let game: Game = intro(&mut engine);
     
-    let second_diag = Dialouge::new(vec!["??", "I already bought the tickets!!"], "What! Ahh Hell Nah!!".to_string());
-    let j = serde_json::to_string(&second_diag);
     
-    eprintln!("test print: {:?}", j.unwrap());
     
 }
