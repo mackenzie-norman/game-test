@@ -693,7 +693,7 @@ fn main() {
     let mut waking = true;
     //let mut waking = false;
     let mut cur_seat:i32 = -1;
-    let mut in_second_diag = true;
+    let mut in_second_diag = true;/**/
     loop {
         engine.wait_frame();
         engine.clear_screen();
@@ -730,8 +730,8 @@ fn main() {
         }
         //debug_engine!(engine, "{}", waking);
         //engine.set_pxl(2, 2, pixel::pxl('👍'));
-        /* 
-        */
+         
+        
                 //station_pov_simple(&mut engine, frame);
         if engine.is_key_pressed(KeyCode::Esc) {
 
