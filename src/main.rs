@@ -16,6 +16,10 @@ mod smart_drawing;
 use smart_drawing::{line, fill_triangle};
 mod game;
 use game::{ticket_screen, Game};
+
+mod newspaper;
+use newspaper::Article;
+
 #[allow(dead_code, unused)]
 
 fn bogey(engine: &mut ConsoleEngine, frame:i32, start_val: i32, bottom:i32){
@@ -740,10 +744,67 @@ fn intro(engine: &mut ConsoleEngine) -> Game{
     frame = 0;
     ticket_screen( engine, frame)
 }
+
+fn casio_anim(engine: &mut ConsoleEngine, frame:i32, cur_time:String){
+    let window_char = pixel::pxl_fg('=', Color::AnsiValue(57));
+    let seat_char = pixel::pxl_fg('%', Color::AnsiValue(52));
+    let screen_width: i32 =(engine.get_width()) as i32;
+    let screen_height: i32 =(engine.get_height()) as i32;
+    let watch_x1: i32 = screen_width/2 - screen_width/8;
+    let watch_x2: i32 = screen_width - watch_x1;
+    let watch_y1: i32 = screen_height/2 - screen_height /6;
+    let watch_y2: i32 =  screen_height - watch_y1;
+    engine.rect(watch_x1, watch_y1, watch_x2, watch_y2, seat_char);
+    let standard = FIGfont::from_file("../small.flf").unwrap();
+    let print_str = format!("{}", standard.convert("CASIO").unwrap());
+    engine.print(watch_x1 + 1, watch_y1 +3 , &print_str);
+    let standard = FIGfont::from_file("../lcd.flf").unwrap();
+    let print_str = format!("{}", standard.convert(&cur_time).unwrap());
+    engine.print(watch_x1 + 1, watch_y1 +3 , &print_str);
+}
+fn base_newspaper_anim( engine: &mut ConsoleEngine, frame:i32, ){
+    let black_background = Color::AnsiValue(247);
+    let screen_width: i32 =(engine.get_width()) as i32;
+    let screen_height: i32 =(engine.get_height()) as i32;
+    let paper_x1: i32 = screen_width/4;
+    let paper_x2: i32 = screen_width - paper_x1;
+    let paper_y1: i32 =  2;
+    let paper_y2: i32 =  screen_height - paper_y1;
+    engine.rect_border(paper_x1, paper_y1, paper_x2, paper_y2, BorderStyle::new_simple());
+    engine.fill_rect(paper_x1, paper_y1, paper_x2, paper_y2, pixel::pxl_bg(' ' , black_background));
+    //title and text
+    let title = "Amtrak Times";
+    let standard = FIGfont::standard().unwrap();
+    let print_str = format!("{}", standard.convert(title).unwrap());
+    engine.print_fbg(paper_x1 + 4, paper_y1 + 2, &print_str ,Color::Black, black_background);
+    engine.line(paper_x1 +1 ,  paper_y1+8, paper_x2 -1, paper_y1+8, pixel::pxl_fbg('=' ,  Color::Black, black_background));
+    let art = Article::new((paper_x2 - paper_x1  ) -4  , paper_y2-paper_y1 + 30, "Miss Lonelyhearts".to_string(), "I am kind of ashamed to write you because a man like me dont take stock in things like that but my wife told me you were a man and not some dopey woman so I thought I would write to you after reading your answer to Disillusioned. I am a cripple 41 yrs of age which I have been all my life and I have never let myself get blue until lately when I have been feeling lousy all the time on account of not getting anywhere and asking myself what is it all for. You have a education so I figured may be you no. What I want to no is why I go around pulling my leg up and down stairs reading meters for the gas company for a stinking $22.50 per while the bosses ride around in swell cars living off the fat of the land. Dont think I am a greasy red. I read where they shoot cripples in Russia because they cant work but I can work better than any park bum and support a wife and child to. But thats not what I am writing you about. What I want to no is what is it all for my pulling my god darned leg along the streets and down in stinking cellars with it all the time hurting fit to burst so that near quitting time I am crazy with pain and when I get home all I hear is money money which aint no home for a man like me. What I want to no is what in hell is the use day after day with a foot like mine when you have to go around pulling and scrambling for a lousy three squares with a toothache in it that comes from useing the foot so much. The doctor told me I ought to rest it for six months but who will pay me when I am resting it. But that aint what I mean either because you might tell me to change my fob and where could I get another one I am lucky to have one at all. It aint the fob that I am complaining about but what I want to no is what is the whole stinking business for.".to_owned());
+    art.to_engine(engine, (paper_x2 - (paper_x2 - paper_x1 -2 )) +1 , paper_y2 - art.get_height() - 20,black_background);
+    engine.line(paper_x1 + 1 ,  paper_y2 - art.get_height()- 20, paper_x2 -1, paper_y2 - art.get_height() - 20, pixel::pxl_fbg('=' ,  Color::Black, black_background));
+    
+    //debug_engine!(engine, "{}",art.get_height());
+}
+
+fn newspaper_anim( engine: &mut ConsoleEngine, frame:i32, ){
+    base_newspaper_anim(engine, frame);
+}
 fn main() {
     let mut engine = console_engine::ConsoleEngine::init_fill(20).unwrap();
-    let game: Game = intro(&mut engine);
-    
+    //let game: Game = intro(&mut engine);
+    let mut frame = 0;
+    loop{
+        engine.wait_frame();
+        engine.clear_screen();
+        if engine.is_key_pressed(KeyCode::Esc) {
+
+            break;
+        }
+        //casio_anim(&mut engine, frame, "12:00 ".to_string());
+        newspaper_anim(&mut engine, frame);
+
+        engine.draw();
+        frame += 1;
+    }
     
     
 }
