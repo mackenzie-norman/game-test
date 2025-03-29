@@ -7,7 +7,7 @@ use console_engine::KeyCode;
 use figlet_rs::FIGfont;
 use rand::{random, Rng, rngs::StdRng, SeedableRng};
 mod dialouge;
-use dialouge::{Dialouge, pt_in_box};
+use dialouge::{pt_in_box, tutorial_skipping, Dialouge};
 mod character;
 use character::Character;
 mod pov;
@@ -18,7 +18,7 @@ mod game;
 use game::{ticket_screen, Game};
 
 mod newspaper;
-use newspaper::Article;
+use newspaper::{base_newspaper_anim, char_to_unicode_offset, string_to_unicode_offset, Article};
 
 #[allow(dead_code, unused)]
 
@@ -685,6 +685,7 @@ fn intro(engine: &mut ConsoleEngine) -> Game{
     let mut tut_diag =  Dialouge::new(vec!["Shit. Did I miss the Tacoma stop?"], "...".to_string() );
 
     tut_diag.leaving_fn = |eng: &mut ConsoleEngine| {true};
+    tut_diag.skipping_fn = tutorial_skipping;
     let mut you = Character::new("You".to_string(), &mut tut_diag , 1);
 
     let mut in_diag = false;
@@ -764,35 +765,16 @@ fn casio_anim(engine: &mut ConsoleEngine, frame:i32, cur_time:String){
     let print_str = format!("{}", standard.convert(&cur_time).unwrap());
     engine.print(watch_x1 + 1, watch_y1 +3 , &print_str);
 }
-fn base_newspaper_anim( engine: &mut ConsoleEngine, frame:i32, ){
-    let black_background = Color::AnsiValue(247);
-    let screen_width: i32 =(engine.get_width()) as i32;
-    let screen_height: i32 =(engine.get_height()) as i32;
-    let paper_x1: i32 = screen_width/4;
-    let paper_x2: i32 = screen_width - paper_x1;
-    let paper_y1: i32 =  2;
-    let paper_y2: i32 =  screen_height - paper_y1;
-    engine.rect_border(paper_x1, paper_y1, paper_x2, paper_y2, BorderStyle::new_simple());
-    engine.fill_rect(paper_x1, paper_y1, paper_x2, paper_y2, pixel::pxl_bg(' ' , black_background));
-    //title and text
-    let title = "Amtrak Times";
-    let standard = FIGfont::standard().unwrap();
-    let print_str = format!("{}", standard.convert(title).unwrap());
-    engine.print_fbg(paper_x1 + 4, paper_y1 + 2, &print_str ,Color::Black, black_background);
-    engine.line(paper_x1 +1 ,  paper_y1+8, paper_x2 -1, paper_y1+8, pixel::pxl_fbg('=' ,  Color::Black, black_background));
-    let art = Article::new((paper_x2 - paper_x1  ) -4  , paper_y2-paper_y1 + 30, "Miss Lonelyhearts".to_string(), "I am kind of ashamed to write you because a man like me dont take stock in things like that but my wife told me you were a man and not some dopey woman so I thought I would write to you after reading your answer to Disillusioned. I am a cripple 41 yrs of age which I have been all my life and I have never let myself get blue until lately when I have been feeling lousy all the time on account of not getting anywhere and asking myself what is it all for. You have a education so I figured may be you no. What I want to no is why I go around pulling my leg up and down stairs reading meters for the gas company for a stinking $22.50 per while the bosses ride around in swell cars living off the fat of the land. Dont think I am a greasy red. I read where they shoot cripples in Russia because they cant work but I can work better than any park bum and support a wife and child to. But thats not what I am writing you about. What I want to no is what is it all for my pulling my god darned leg along the streets and down in stinking cellars with it all the time hurting fit to burst so that near quitting time I am crazy with pain and when I get home all I hear is money money which aint no home for a man like me. What I want to no is what in hell is the use day after day with a foot like mine when you have to go around pulling and scrambling for a lousy three squares with a toothache in it that comes from useing the foot so much. The doctor told me I ought to rest it for six months but who will pay me when I am resting it. But that aint what I mean either because you might tell me to change my fob and where could I get another one I am lucky to have one at all. It aint the fob that I am complaining about but what I want to no is what is the whole stinking business for.".to_owned());
-    art.to_engine(engine, (paper_x2 - (paper_x2 - paper_x1 -2 )) +1 , paper_y2 - art.get_height() - 20,black_background);
-    engine.line(paper_x1 + 1 ,  paper_y2 - art.get_height()- 20, paper_x2 -1, paper_y2 - art.get_height() - 20, pixel::pxl_fbg('=' ,  Color::Black, black_background));
-    
-    //debug_engine!(engine, "{}",art.get_height());
-}
+
 
 fn newspaper_anim( engine: &mut ConsoleEngine, frame:i32, ){
     base_newspaper_anim(engine, frame);
 }
 fn main() {
+    /**/
+    
     let mut engine = console_engine::ConsoleEngine::init_fill(20).unwrap();
-    let game: Game = intro(&mut engine);
+    //let game: Game = intro(&mut engine);
     let mut frame = 0;
     loop{
         engine.wait_frame();
@@ -807,6 +789,9 @@ fn main() {
         engine.draw();
         frame += 1;
     }
-    
+     
+   
+   println!("{}", char_to_unicode_offset('a', '𝐴' as u32).unwrap());
+   println!("{}" ,string_to_unicode_offset("Testing", '𝐴' as u32));
     
 }

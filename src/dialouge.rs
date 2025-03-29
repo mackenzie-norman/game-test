@@ -64,6 +64,30 @@ fn is_skipping(engine: &mut ConsoleEngine) -> bool{
     }
     true
 }
+pub fn tutorial_skipping(engine: &mut ConsoleEngine) -> bool{
+    let screen_width: i32 =(engine.get_width()) as i32;
+    let screen_height: i32 =(engine.get_height()) as i32;
+
+    let box_x1: i32 = screen_width/6;
+    let box_x2: i32 = screen_width - box_x1;
+     
+    let box_y1 = screen_height/3 + screen_height/3 + screen_height/24;// + screen_height/36;
+    let box_y2 = screen_height - screen_height/6 + screen_height/24;
+    if engine.is_key_pressed(KeyCode::Enter){
+        return false;
+                //return self;
+    }
+    let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+    if let Some(mouse_pos) = mouse_pos {
+        let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
+        if new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2 {
+            return false;
+        } 
+                
+    }
+    engine.print_fbg(box_x1 +1, box_y2 - 2, "Tip: You will know if someone is done talking by the flashing arrow. Click in the box or press enter to continue", Color::Grey, Color::Black);
+    true
+}
 fn leave(engine: &mut ConsoleEngine) -> bool{
     let screen_width: i32 =(engine.get_width()) as i32;
     let screen_height: i32 =(engine.get_height()) as i32;
@@ -191,6 +215,7 @@ impl <'a> Dialouge<'a>{
                 } 
                 else{
                     self.reset();
+                    return 0;
                 }
             }
 
