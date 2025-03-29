@@ -41,16 +41,60 @@ pub fn pt_in_box(pt:(i32,i32), boxx: ((i32,i32),(i32,i32))) -> bool{
     pt.0 < box_x2 && pt.0 > box_x1 && pt.1 > box_y1 && pt.1 < box_y2
 
 }
+fn is_skipping(engine: &mut ConsoleEngine) -> bool{
+    let screen_width: i32 =(engine.get_width()) as i32;
+    let screen_height: i32 =(engine.get_height()) as i32;
+
+    let box_x1: i32 = screen_width/6;
+    let box_x2: i32 = screen_width - box_x1;
+     
+    let box_y1 = screen_height/3 + screen_height/3 + screen_height/24;// + screen_height/36;
+    let box_y2 = screen_height - screen_height/6 + screen_height/24;
+    if engine.is_key_pressed(KeyCode::Enter){
+        return false;
+                //return self;
+    }
+    let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+    if let Some(mouse_pos) = mouse_pos {
+        let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
+        if new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2 {
+            return false;
+        } 
+                
+    }
+    true
+}
+fn leave(engine: &mut ConsoleEngine) -> bool{
+    let screen_width: i32 =(engine.get_width()) as i32;
+    let screen_height: i32 =(engine.get_height()) as i32;
+
+    let box_x1: i32 = screen_width/6;
+    let box_x2: i32 = screen_width - box_x1;
+     
+    let box_y1 = screen_height/3 + screen_height/3 + screen_height/24;// + screen_height/36;
+    let box_y2 = screen_height - screen_height/6 + screen_height/24;
+    let mouse_pos = engine.get_mouse_press(MouseButton::Left);
+    if let Some(mouse_pos) = mouse_pos {
+    let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
+    if new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2 {
+    }else{
+        return false;
+    }
+    }
+    return true;
+}
 
 
-#[derive(Serialize)]
+//#[derive(Serialize)]
 pub struct Dialouge<'a> {
     choices: Vec<&'a str>,
     prompt : String,
     pub is_prompting:bool,
     pub is_active: bool,
     pub current_char: u32,
-    pub choice: i32
+    pub choice: i32,
+    pub leaving_fn : fn(engine: &mut ConsoleEngine) -> bool,
+    pub skipping_fn: fn(engine: &mut ConsoleEngine) -> bool
 }
 
 impl <'a> Dialouge<'a>{
@@ -61,7 +105,13 @@ impl <'a> Dialouge<'a>{
             is_prompting: true, 
             is_active: true, 
             choice: -1, 
-            current_char:0}
+            current_char:0,
+            leaving_fn : leave,
+            skipping_fn: is_skipping
+            
+
+
+        }
         
     }
     pub fn write_prompt(& mut self, engine: &mut ConsoleEngine, frame:i32, speaker_name : &str) -> usize{
@@ -89,20 +139,8 @@ impl <'a> Dialouge<'a>{
                 engine.print(box_x2 -1, box_y2 -1, "V");
             }
             self.current_char += 2;
-            if engine.is_key_pressed(KeyCode::Enter){
-                self.is_prompting = false;
-                //return self;
-            }
-            let mouse_pos = engine.get_mouse_press(MouseButton::Left);
-            if let Some(mouse_pos) = mouse_pos {
-                let new_mouse_pos = (mouse_pos.0.try_into().unwrap_or(0), mouse_pos.1.try_into().unwrap_or(0));
-                if new_mouse_pos.0 < box_x2 && new_mouse_pos.0 > box_x1 && new_mouse_pos.1 > box_y1 && new_mouse_pos.1 < box_y2 {
-                    self.is_prompting = false;
-                } 
-                else{
-                    self.is_active = false;
-                }
-            }
+            self.is_prompting = (self.skipping_fn)(engine);
+            
         }
         else if self.choice == -1{
             set_speaker_name = "You";
@@ -131,8 +169,7 @@ impl <'a> Dialouge<'a>{
                     };
                     
                 } 
-                else{
-                    self.is_active = false;
+                else{  
                     self.is_prompting = true;
                 }
             }
@@ -158,6 +195,7 @@ impl <'a> Dialouge<'a>{
             }
 
         }
+        self.is_active = (self.leaving_fn)(engine);
         engine.print_fbg(box_x1 + 1, box_y1, set_speaker_name, Color::Green, Color::Black);
         return 0;
     }

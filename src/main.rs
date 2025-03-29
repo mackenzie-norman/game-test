@@ -672,17 +672,19 @@ fn intro(engine: &mut ConsoleEngine) -> Game{
     let mut in_seat = false;
     //Mom - I am sorry about the curse words
     let mut first_diag = Dialouge::new(vec!["Fuck. I'm gonna have to try and catch a train back", "It's okay. I'll get off here. I don't really have much to do anyway"], "Tacoma was a while ago. I think this is Tukwilla - shit - or maybe Renton, but honestly I'm not sure. ".to_string());
-    //let mut insanity = binding.clone();
-    //binding.child_diags.push(& mut insanity);
+    first_diag.leaving_fn = |eng: &mut ConsoleEngine| {true};
 
     let mut second_diag = Dialouge::new( vec!["I'll take a look. Thanks, again"],
      "You might be able to get a bus too. I had to get one here once.".to_string());
+    second_diag.leaving_fn = |eng: &mut ConsoleEngine| {true};
     //let mut cur_diag = & mut first_diag;
     
     let mut dick_g = Character::new("????".to_string(), &mut first_diag, 1);
     dick_g.add_dialouge(&mut second_diag);
     
     let mut tut_diag =  Dialouge::new(vec!["Shit. Did I miss the Tacoma stop?"], "...".to_string() );
+
+    tut_diag.leaving_fn = |eng: &mut ConsoleEngine| {true};
     let mut you = Character::new("You".to_string(), &mut tut_diag , 1);
 
     let mut in_diag = false;
@@ -790,7 +792,7 @@ fn newspaper_anim( engine: &mut ConsoleEngine, frame:i32, ){
 }
 fn main() {
     let mut engine = console_engine::ConsoleEngine::init_fill(20).unwrap();
-    //let game: Game = intro(&mut engine);
+    let game: Game = intro(&mut engine);
     let mut frame = 0;
     loop{
         engine.wait_frame();
