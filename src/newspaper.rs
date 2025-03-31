@@ -61,8 +61,8 @@ impl Article{
         return art;
     }
     pub fn to_engine(&self, engine: &mut ConsoleEngine, x :i32, y:i32, fill_color:Color){
-        
-        engine.print_fbg(x, y, &string_to_unicode_offset(&self.text, '𝙰' as u32), Color::Black, fill_color);
+        //
+        engine.print_fbg(x, y, &string_to_unicode_offset(&self.text, '𝐀' as u32), Color::Black, fill_color);
     }
     pub fn get_height(&self) -> i32{
         self.height
@@ -91,7 +91,7 @@ pub fn base_newspaper_anim( engine: &mut ConsoleEngine, frame:i32, ){
     engine.print_fbg(paper_x1 + 4, paper_y1 + 2, &print_str ,Color::Black, black_background);
     engine.line(paper_x1 +1 ,  paper_y1+8, paper_x2 -1, paper_y1+8, pixel::pxl_fbg('=' ,  Color::Black, black_background));
 
-    let art = Article::new((paper_x2 - paper_x1  )/2  , paper_y2-paper_y1 + 30, "Miss Lonelyhearts".to_string(), "Dear Miss Lonelyhearts of Miss Lonelyhearts--
+    let art = Article::new((paper_x2 - paper_x1  )/2  , paper_y2-paper_y1 + 30, "Miss Lonelyhearts".to_string(), "\"Dear Miss Lonelyhearts of Miss Lonelyhearts--
 
 I am twenty-six years old and in the newspaper game. Life for me is a desert empty of comfort. I cannot find pleasure in food, drink, or women--nor do the arts give me joy any longer. The Leopard of Discontent walks the streets of my city; the Lion of Discouragement crouches outside the walls of my citadel. All is desolation and a vexation of the spirit. I feel like hell. How can. I believe, how can I have faith in this day and age? Is it true that the greatest scientists believe again in you?
 
@@ -99,7 +99,7 @@ I read your column and like it very much. There you once wrote: 'When the salt h
 
 Thanking you very much for a quick reply, I remain yours truly,
 
-A Regular Subscriber".to_owned());
+A Regular Subscriber\"".to_owned());
     art.to_engine(engine, (paper_x2 - (paper_x2 - paper_x1 -2 )) +1 , paper_y1 + 30  ,black_background);
     //engine.line(paper_x1 + 1 ,  paper_y2 - art.get_height() -1 , paper_x2 -1, paper_y2 - art.get_height() - 1 , pixel::pxl_fbg(' ' ,  Color::Black, black_background));
     //engine.set_pxl(paper_x1 +2, paper_y1 + 2, Pixel { bg: black_background, fg: Color::Black, chr: '𝑎' });

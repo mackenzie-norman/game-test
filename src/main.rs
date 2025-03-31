@@ -771,10 +771,10 @@ fn newspaper_anim( engine: &mut ConsoleEngine, frame:i32, ){
     base_newspaper_anim(engine, frame);
 }
 fn main() {
-    /**/
+    /* */
     
     let mut engine = console_engine::ConsoleEngine::init_fill(20).unwrap();
-    //let game: Game = intro(&mut engine);
+    let game: Game = intro(&mut engine);
     let mut frame = 0;
     loop{
         engine.wait_frame();
@@ -790,8 +790,8 @@ fn main() {
         frame += 1;
     }
      
-   
-   println!("{}", char_to_unicode_offset('a', '𝐴' as u32).unwrap());
-   println!("{}" ,string_to_unicode_offset("Testing", '𝐴' as u32));
+  
+   //println!("{}", char_to_unicode_offset('a', '𝐴' as u32).unwrap());
+   //println!("{}" ,string_to_unicode_offset("Testing CAS1O", '𝗔' as u32));
     
 }
